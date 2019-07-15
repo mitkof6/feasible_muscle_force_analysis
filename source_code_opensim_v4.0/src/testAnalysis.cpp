@@ -7,41 +7,41 @@ using namespace OpenSim;
 using namespace std;
 
 void run() {
-	auto subjectDir = DATA_DIR + "/gait1018/";
-	auto resultsDir = subjectDir + "results/";
-	auto modelFile = subjectDir + "subject01_scaled.osim";
-	auto ikFile = resultsDir + "subject01_walk1_ik.mot";
-	auto idFile = resultsDir + "subject01_inverse_dynamics.sto";
-	auto soFile = resultsDir + "subject01_StaticOptimization_force.sto";
-	
-	Model model(modelFile);
-	Storage motion(ikFile);
+    auto subjectDir = DATA_DIR + "/gait1018/";
+    auto resultsDir = subjectDir + "results/";
+    auto modelFile = subjectDir + "subject01_scaled.osim";
+    auto ikFile = resultsDir + "subject01_walk1_ik.mot";
+    auto idFile = resultsDir + "subject01_inverse_dynamics.sto";
+    auto soFile = resultsDir + "subject01_StaticOptimization_force.sto";
 
-	FeasibleMuscleForceAnalysis* feasibleForces = new FeasibleMuscleForceAnalysis();
-	feasibleForces->setModel(model);
-	feasibleForces->set_so_results(soFile);
-	feasibleForces->set_id_results(idFile);
-	model.addAnalysis(feasibleForces);
-	
-	AnalyzeTool analysis;
-	analysis.setName("FeasibleMuscleForces");
-	analysis.setModel(model);
-	analysis.setInitialTime(motion.getFirstTime());
-	analysis.setFinalTime(motion.getLastTime());
-	analysis.setLowpassCutoffFrequency(6);
-	analysis.setCoordinatesFileName(ikFile);
-	analysis.setLoadModelAndInput(true);
-	analysis.setResultsDir(resultsDir);
-	analysis.run();
+    Model model(modelFile);
+    Storage motion(ikFile);
+
+    FeasibleMuscleForceAnalysis* feasibleForces = new FeasibleMuscleForceAnalysis();
+    feasibleForces->setModel(model);
+    feasibleForces->set_so_results(soFile);
+    feasibleForces->set_id_results(idFile);
+    model.addAnalysis(feasibleForces);
+
+    AnalyzeTool analysis;
+    analysis.setName("FeasibleMuscleForces");
+    analysis.setModel(model);
+    analysis.setInitialTime(motion.getFirstTime());
+    analysis.setFinalTime(motion.getLastTime());
+    analysis.setLowpassCutoffFrequency(6);
+    analysis.setCoordinatesFileName(ikFile);
+    analysis.setLoadModelAndInput(true);
+    analysis.setResultsDir(resultsDir);
+    analysis.run();
 }
 
 int main(int argc, char *argv[]) {
-	try {
-		run();
-	}
-	catch (exception &e) {
-		cout << e.what() << endl;
-		return -1;
-	}
-	return 0;
+    try {
+        run();
+    }
+    catch (exception &e) {
+        cout << e.what() << endl;
+        return -1;
+    }
+    return 0;
 }
