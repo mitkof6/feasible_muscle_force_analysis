@@ -1,24 +1,29 @@
 #include "FeasibleMuscleForceAnalysis.h"
 #include <cassert>
+#include <ctime>
 #include <OpenSim/Simulation/Model/Model.h>
 #include <OpenSim/Simulation/Model/Muscle.h>
 extern "C" {
-#include "lrslib.h"
+#undef __cplusplus		// required to work with gmp
+#include "lrslib.h"		// must be enclosed in extern "C"
 };
 
 using namespace std;
+// using std::vector;
+// using std::string;
+// using std::max;
 using namespace OpenSim;
 using namespace SimTK;
 
 /******************************************************************************/
 
-Matrix calculateMomentArm(const State& s, const Model& model) {
-    auto& coordinateSet = model.getCoordinateSet();
-    auto& muscleSet = model.getMuscles();
-    Matrix R(muscleSet.getSize(), coordinateSet.getSize());
-    for (int i = 0; i < muscleSet.getSize(); i++) {
-        for (int j = 0; j < coordinateSet.getSize(); j++) {
-            R[i, j] = muscleSet[i].computeMomentArm(s, coordinateSet[j]);
+Matrix calcMomentArm(const State& s, const Model& model) {
+    const auto& coordinateSet = model.getCoordinateSet();
+    const auto& muscleSet = model.getMuscles();
+    Matrix R(coordinateSet.getSize(), muscleSet.getSize(), 0.0);
+    for (int i = 0; i < coordinateSet.getSize(); i++) {
+	for (int j = 0; j < muscleSet.getSize(); j++) {
+            R[i][j] = muscleSet[j].computeMomentArm(s, coordinateSet[i]);
         }
     }
     return R;
@@ -34,7 +39,7 @@ Vector calcMaxForce(const State& s, const Model& model) {
     return fMax;
 }
 
-Matrix calculateNullSpace(const Matrix& A, double atol=1e-13, double rtol=0) {
+Matrix calcNullSpace(const Matrix& A, double atol=1e-13, double rtol=0) {
     Vector s;
     Matrix U, VT;
     FactorSVD svd(A);
@@ -44,8 +49,7 @@ Matrix calculateNullSpace(const Matrix& A, double atol=1e-13, double rtol=0) {
     for (auto v : s) {
         if (v >= tol) nz++;
     }
-    Matrix N = VT(nz, 0, VT.nrow() - nz, VT.ncol()).transpose();
-    return N;
+    return VT(nz, 0, VT.nrow() - nz, VT.ncol()).transpose();
 }
 
 void testNullSpace() {
@@ -61,7 +65,7 @@ void testNullSpace() {
                   0.14763525,  0.78944549};
     Matrix A(4, 6, a);
     Matrix Nr(6, 2, n);
-    auto N = calculateNullSpace(A);
+    auto N = calcNullSpace(A);
 
     // cout << A << endl;
     // cout << N << endl;
@@ -102,32 +106,24 @@ void constructLinearMuscleInequality(const Matrix& NR,
     // }
 }
 
-void vertexEnumeration(const Matrix& A, const Vector& b) {
-    // variables
-    lrs_dic* P;
-    lrs_dat* Q;
-    lrs_mp_vector output;
-    lrs_mp_matrix Lin;   
-    long i;
-    long col;
-
+Matrix vertexEnumeration(const Matrix& A, const Vector& b) {
     // initialize
     if (!lrs_init((char*) "lrs")) {
-	throw OpenSim::Exception("could not initialize lrs library");
+        throw OpenSim::Exception("could not initialize lrs library");
     }
-        
+
     // initialize Q data
-    Q = lrs_alloc_dat("lrs_data");
+    lrs_dat* Q = lrs_alloc_dat("lrs_data");
     if (Q == NULL) {
-	throw OpenSim::Exception("could not allocate Q data");
+        throw OpenSim::Exception("could not allocate Q data");
     }
     Q->m = A.nrow();
     Q->n = A.ncol() + 1;
 
     // initialize P dictionary
-    P = lrs_alloc_dic(Q); 
+    lrs_dic* P = lrs_alloc_dic(Q);
     if (P == NULL) {
-	throw OpenSim::Exception("could not allocate P dictionary");
+        throw OpenSim::Exception("could not allocate P dictionary");
     }
 
     // populate P and Q from A and b
@@ -135,41 +131,101 @@ void vertexEnumeration(const Matrix& A, const Vector& b) {
     num = lrs_alloc_mp_vector(Q->n);
     den = lrs_alloc_mp_vector(Q->n);
     for (int i = 1; i <= Q->m; i++){
-	// TODO populate num, den
-	lrs_set_row_mp(P, Q, i, num, den, GE);
+        for (int j = 0; j < Q->n; j++) {
+            if (j > 0) {
+                mpq_t op;
+                mpq_init(op);
+                mpq_set_d(op, -A[i - 1][j - 1]);
+                mpq_canonicalize(op);
+		itomp(mpz_get_si(mpq_numref(op)), num[j]);
+                itomp(mpz_get_si(mpq_denref(op)), den[j]);
+                mpq_clear(op);
+            } else {
+                mpq_t op;
+                mpq_init(op);
+                mpq_set_d(op, b[i - 1]);
+                mpq_canonicalize(op);
+		itomp(mpz_get_si(mpq_numref(op)), num[j]);
+                itomp(mpz_get_si(mpq_denref(op)), den[j]);
+                mpq_clear(op);
+	    }
+        }
+        lrs_set_row_mp(P, Q, i, num, den, GE);
+    }
+    lrs_clear_mp_vector(num, Q->n);
+    lrs_clear_mp_vector(den, Q->n);
+
+    // try pivot to a starting dictionary
+    lrs_mp_matrix Lin;
+    if (!lrs_getfirstbasis(&P, Q, &Lin, FALSE)) {
+        // free space
+	if (Q->nredundcol > 0) lrs_clear_mp_matrix(Lin, Q->nredundcol, Q->n);
+        lrs_free_dic(P, Q);
+        lrs_free_dat(Q);
+        lrs_close((char*) "lrs");
+        throw OpenSim::Exception("empty set: infeasible problem");
     }
 
-    // pivot to a starting dictionary
-    output = lrs_alloc_mp_vector(Q->n);
-    if (!lrs_getfirstbasis(&P, Q, &Lin, false)) {
-	// print non redundant coefficients
-        for (col = 0L; col < Q->nredundcol; col++) 
-            lrs_printoutput(Q, Lin[col]);
+    // print non redundant coefficients
+    // for (int col = 0L; col < Q->nredundcol; col++) {
+    //     lrs_printoutput(Q, Lin[col]);
+    // }
 
-        do {
-            for (col = 0; col <= P->d; col++)
-                if (lrs_getsolution(P, Q, output, col))
-                    lrs_printoutput(Q, output);
-        } while (lrs_getnextbasis(&P, Q, FALSE));
+    // obtain the vertices of the polytope
+    lrs_mp_vector output = lrs_alloc_mp_vector(Q->n);
+    vector<double> result;
+    int rows = 0;
+    do {
+	// get solution into output
+        for (int col = 0; col <= P->d; col++) {
+	    // if (lrs_getsolution (P, Q, output, col)) {
+	    // 	 lrs_printoutput (Q, output);
+	    // }
+	    lrs_getsolution(P, Q, output, col);
+	}
+	// transform as double
+	for (int i = 1; i < Q->n; i++) {
+	    double res;
+	    rattodouble(output[i], output[0], &res);
+	    result.push_back(res);
+	}
+	rows++;
+    } while (lrs_getnextbasis(&P, Q, FALSE));
+    lrs_printtotals(P, Q); 
 
-        lrs_printtotals(P, Q);
+    // free space
+    lrs_clear_mp_vector(output, Q->n);
+    if (Q->nredundcol > 0) lrs_clear_mp_matrix(Lin, Q->nredundcol, Q->n); 
+    lrs_free_dic(P, Q);
+    lrs_free_dat(Q);
+    lrs_close((char*) "lrs");
+    
+    return Matrix(rows, P->d, &result[0]);
+}
 
-	// free space
-        lrs_clear_mp_vector(output, Q->n);
-	lrs_clear_mp_vector(num, Q->n);
-        lrs_clear_mp_vector(den, Q->n);
-        lrs_free_dic(P, Q);
-        lrs_free_dat(Q);
-	lrs_close((char*) "lrs");
-    } else {
-	// free space
-	lrs_clear_mp_vector(output, Q->n);
-	lrs_clear_mp_vector(num, Q->n);
-        lrs_clear_mp_vector(den, Q->n);
-        lrs_free_dic(P, Q);
-        lrs_free_dat(Q);
-	lrs_close((char*) "lrs");
-	throw OpenSim::Exception("empty set");
+void testVertexEnumeration() {
+    // define a cube
+    Real a[18] = { 0,  0, -1,
+                   0, -1,  0,
+                   1,  0,  0,
+                   -1,  0,  0,
+                   0,  1,  0,
+                   0,  0,  1};
+    Real s[24] = {-0.5,  0.5,  0.5,
+                  0.5, -0.5,  0.5,
+                  0.5, -0.5, -0.5,
+                  0.5,  0.5,  0.5,
+                  0.5,  0.5, -0.5,
+                  -0.5, -0.5,  0.5,
+                  -0.5, -0.5, -0.5,
+                  -0.5,  0.5, -0.5};
+    Matrix A(6, 3, a);
+    Vector b(6, 0.5);
+    Matrix SR(8, 3, s);
+    Matrix S = vertexEnumeration(A, b);
+    cout << S<< endl;
+    for (int i = 0; i < S.nrow(); i++) {
+	assert((S[i] - SR[i]).norm() < 0.0001);
     }
 }
 
@@ -217,12 +273,13 @@ void FeasibleMuscleForceAnalysis::setNull() {
 }
 
 int FeasibleMuscleForceAnalysis::record(const State& s) {
+    cout << "Time: " << s.getTime() << endl;
     _model->realizePosition(s);
     // get quantities
     auto m = _model->getMuscles().getSize();
     auto fmMax = calcMaxForce(s, *_model);
-    auto R = calculateMomentArm(s, *_model);
-    auto NR = calculateNullSpace(R);
+    auto R = calcMomentArm(s, *_model);
+    auto NR = calcNullSpace(R);
     Vector fmPar(m);
     soStorage->getDataAtTime(s.getTime(), m, fmPar);
 
@@ -231,12 +288,22 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     Vector b;
     constructLinearMuscleInequality(NR, fmPar, fmMax, Z, b);
 
+    // cout << fmPar << endl;
+    // cout << fmMax << endl;
+    // cout << R << endl;
+    // cout << NR << endl;
+    // cout << Z << endl << b << endl;
 
+    clock_t begin = clock();
 
-    exit(0);
+    vertexEnumeration(Z, b);
 
+    clock_t end = clock();
+    double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC;
+    cout << "Vertex enumeration elapsed time: " << elapsed_secs << endl;
+    
+    // testVertexEnumeration();
     // testNullSpace();
-    // exit(0);
-
+    
     return 0;
 }

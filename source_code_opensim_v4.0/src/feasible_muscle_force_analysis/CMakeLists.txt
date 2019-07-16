@@ -1,7 +1,8 @@
 # dependencies
-add_compile_definitions(LRSLONG)
+# add_compile_definitions(LRSLONG)
+add_compile_definitions(GMP)
 include_directories(lrslib/)
-set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES})
+set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES} gmp)
 
 # FeasibleMuscleForceAnalysis
 file(GLOB sources *.cpp internal/*.cpp lrslib/*.c)
