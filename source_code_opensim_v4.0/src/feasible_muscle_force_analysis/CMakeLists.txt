@@ -1,11 +1,14 @@
-set(target FeasibleMuscleForceAnalysis)
-
-file(GLOB sources *.cpp internal/*.cpp)
-file(GLOB includes *.h internal/*.h)
+# dependencies
+add_compile_definitions(LRSLONG)
+include_directories(lrslib/)
+set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES})
 
 # FeasibleMuscleForceAnalysis
+file(GLOB sources *.cpp internal/*.cpp lrslib/*.c)
+file(GLOB includes *.h internal/*.h lrslib/*.h)
+set(target FeasibleMuscleForceAnalysis)
 add_library(${target} SHARED ${sources} ${includes})
-target_link_libraries (${target} ${OpenSim_LIBRARIES})
+target_link_libraries (${target} ${DEPENDENCY_LIBRARIES})
 set_target_properties(
   ${target} PROPERTIES
   FOLDER "Plugins"
