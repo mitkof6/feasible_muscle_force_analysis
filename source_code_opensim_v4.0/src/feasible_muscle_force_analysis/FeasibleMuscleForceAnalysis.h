@@ -40,6 +40,9 @@ namespace OpenSim {
         int record(const SimTK::State& s);
     private:
         SimTK::ReferencePtr<OpenSim::Storage> idStorage, soStorage;
+	// [{t0, feasible muscle forces}, ..., {tf, feasible muscle forces}]
+	std::vector<std::pair<double, std::vector<SimTK::Vector>>> fs;
+	int smallestPolytope;
     };
 }
 

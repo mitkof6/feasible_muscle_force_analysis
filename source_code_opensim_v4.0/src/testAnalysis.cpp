@@ -28,10 +28,12 @@ void run() {
     analysis.setModel(model);
     analysis.setInitialTime(motion.getFirstTime());
     analysis.setFinalTime(motion.getLastTime());
+    // analysis.setInitialTime(0);
+    // analysis.setFinalTime(0.1);
     analysis.setLowpassCutoffFrequency(6);
     analysis.setCoordinatesFileName(ikFile);
     analysis.setLoadModelAndInput(true);
-    analysis.setResultsDir(resultsDir);
+    analysis.setResultsDir(resultsDir + "feasible_muscle_forces/");
     analysis.run();
 }
 
