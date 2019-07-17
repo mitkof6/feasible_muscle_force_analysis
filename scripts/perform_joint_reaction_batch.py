@@ -56,4 +56,7 @@ for i, force_file in enumerate(tqdm(feasible_force_files)):
     print(force_file)
     perform_jra(model_file, ik_file, grf_file, grf_xml_file,
                 reserve_actuators_file, feasible_set_dir + force_file,
-                jra_results_dir, prefix=str(i) + '_')
+                jra_results_dir, prefix=str(i) + '_',
+                joint_names=['All'],
+                apply_on_bodies=['child'],
+                express_in_frame=['ground'])

@@ -24,7 +24,6 @@ jra_results_dir = subject_dir + 'results/joint_reaction_analyses/'
 figures_dir = subject_dir + 'results/fig/'
 
 collect = True
-use_abs = False
 joint = 'knee_r'
 joints = 3
 mass = 72.6  # kg
@@ -68,11 +67,6 @@ if collect:
 
         header, labels, data = readMotionFile(jra_results_dir + f)
         simulationData[i, :, :] = np.array(data)
-
-
-if use_abs:
-    simulationData = np.abs(simulationData)
-    os_data = np.abs(os_data)
 
 # def _plot_range_band(central_data=None, ci=None, data=None, *args, **kwargs):
 #     upper = data.max(axis=0)

@@ -317,13 +317,13 @@ def perform_jra(model_file, ik_file, grf_file, grf_xml, reserve_actuators,
     external_loads.setLowpassCutoffFrequencyForLoadKinematics(6)
     external_loads.printToXML(results_dir + name + '.xml')
 
-    # TODO this may not be needed
-    # add reserve actuators (must not be appended when performing JRA)
-    force_set = opensim.ForceSet(model, reserve_actuators)
-    force_set.setMemoryOwner(False)  # model will be the owner
-    for i in range(0, force_set.getSize()):
-        model.updForceSet().append(force_set.get(i))
-        # model.addForce(force_set.get(i))
+    # # TODO this may not be needed
+    # # add reserve actuators (must not be appended when performing JRA)
+    # force_set = opensim.ForceSet(model, reserve_actuators)
+    # force_set.setMemoryOwner(False)  # model will be the owner
+    # for i in range(0, force_set.getSize()):
+    #     model.updForceSet().append(force_set.get(i))
+    #     # model.addForce(force_set.get(i))
 
     # construct joint reaction analysis
     motion = opensim.Storage(ik_file)
