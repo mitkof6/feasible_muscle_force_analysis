@@ -107,7 +107,8 @@ void run(int argc, char *argv[]) {
     if(argc == 3){
         previousIteration = atoi(argv[1]);
         maxIterations = atoi(argv[2]);
-	assert(previousIteration >= 0 && maxIterations > 0);
+	SimTK_ASSERT_ALWAYS(previousIteration >= 0 && maxIterations > 0,
+			    "wrong bounds for argv");
     }
     else{
 	auto message = string("this executable accepts 2 integer arguments: ") +

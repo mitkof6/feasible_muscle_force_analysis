@@ -1,25 +1,31 @@
-# dependencies
+# lrslib
 if (WIN32)
-    include_directories(unistd_win32/)
-    # include_directories(gmp_win32/)
-    #link_directories(${CMAKE_CURRENT_SOURCE_DIR}/gmp_win32/)
-    #find_library(gmp
-    #             NAMES gmp
-    #             PATHS ${CMAKE_CURRENT_SOURCE_DIR}/gmp_win32/
-    #             PATH_SUFFIXES lib)
+  add_definitions(-DLRSLONG)
+  file(GLOB lrs_sources
+    lrslib/lrslib.c
+    lrslib/lrslong.c)
+  file(GLOB lrs_includes
+    lrslib/lrslib.h
+    lrslib/lrslong.h
+    lrslib/unistd_win32/unistd.h)
+else ()
+  add_definitions(-DGMP)
+  file(GLOB lrs_sources
+    lrslib/lrslib.c
+    lrslib/lrsgmp.c)
+  file(GLOB lrs_includes
+    lrslib/lrslib.h
+    lrslib/lrsgmp.h)
+  set(lrs_libraries gmp)
 endif()
-# add_compile_definitions(LRSLONG)
-# add_compile_definitions(GMP) # may not work with old versions
-# add_definitions(-DGMP)
-add_definitions(-DLRSLONG)
-include_directories(lrslib/)
-set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES} ${gmp})
+set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES} ${lrs_libraries})
 
 # FeasibleMuscleForceAnalysis
-file(GLOB sources *.cpp internal/*.cpp lrslib/*.c)
-file(GLOB includes *.h internal/*.h lrslib/*.h)
+file(GLOB sources *.cpp internal/*.cpp)
+file(GLOB includes *.h internal/*.h)
 set(target FeasibleMuscleForceAnalysis)
-add_library(${target} SHARED ${sources} ${includes})
+add_library(${target} SHARED
+  ${sources} ${includes} ${lrs_sources} ${lrs_includes})
 target_link_libraries (${target} ${DEPENDENCY_LIBRARIES})
 set_target_properties(
   ${target} PROPERTIES
