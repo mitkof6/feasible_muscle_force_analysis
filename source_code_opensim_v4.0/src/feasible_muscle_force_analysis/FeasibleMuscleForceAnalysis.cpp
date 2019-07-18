@@ -11,10 +11,14 @@
 #include <limits>
 #include <OpenSim/Simulation/Model/Model.h>
 #include <OpenSim/Simulation/Model/Muscle.h>
+#ifdef __cplusplus
 extern "C" {
-#undef __cplusplus		// required to work with gmp
-#include "lrslib.h"		// must be enclosed in extern "C"
-};
+#endif
+// #undef __cplusplus		     // required to work with gmp
+#include "lrslib.h"	
+#ifdef __cplusplus
+}
+#endif
 
 using namespace std;
 using namespace OpenSim;
@@ -144,6 +148,33 @@ void constructLinearMuscleInequality(const Matrix& NR,
     // }
 }
 
+long gcd(long a, long b) {
+    if (a == 0)
+        return b;
+    else if (b == 0)
+        return a;
+
+    if (a < b)
+        return gcd(a, b % a);
+    else
+        return gcd(b, a % b);
+}
+
+void fraction(const double& input, long& numerator, long& denominator) {
+    double integral = std::floor(input);
+    double frac = input - integral;
+
+    const long precision = 1000000000; // This is the accuracy.
+
+    long gcd_ = gcd(round(frac * precision), precision);
+
+    denominator = precision / gcd_;
+    numerator = round(frac * precision) / gcd_;
+
+    // std::cout << integral << " + ";
+    // std::cout << numerator << " / " << denominator << std::endl;
+}
+
 Matrix vertexEnumeration(const Matrix& A, const Vector& b) {
     // initialize
     if (!lrs_init((char*) "lrs")) {
@@ -174,28 +205,36 @@ Matrix vertexEnumeration(const Matrix& A, const Vector& b) {
 		double value = -A[i - 1][j - 1];
 		// cout << value << endl;
 		if (std::abs(value) < 0.001) value = 0.0;
-                mpq_t op;
+       /*         mpq_t op;
                 mpq_init(op);
                 mpq_set_d(op, value);
                 mpq_canonicalize(op);
 		itomp(mpz_get_si(mpq_numref(op)), num[j]);
                 itomp(mpz_get_si(mpq_denref(op)), den[j]);
-                mpq_clear(op);
+                mpq_clear(op);*/
+        long nnum, dden;
+        fraction(value, nnum, dden);
+        *num[j] = nnum;
+        *den[j] = dden;
             } else {
 		double value = b[i - 1];
 		// cout << value << endl;
 		if (std::abs(value) < 0.001) value = 0.0;
-                mpq_t op;
+                /*mpq_t op;
                 mpq_init(op);
                 mpq_set_d(op, value);
                 mpq_canonicalize(op);
 		itomp(mpz_get_si(mpq_numref(op)), num[j]);
                 itomp(mpz_get_si(mpq_denref(op)), den[j]);
-                mpq_clear(op);
+                mpq_clear(op);*/
+        long nnum, dden;
+        fraction(value, nnum, dden);
+        *num[j] = nnum;
+        *den[j] = dden;
 	    }
         }
-	// lrs_printoutput (Q, num);
-	// lrs_printoutput (Q, den);
+	 lrs_printoutput (Q, num);
+	 lrs_printoutput (Q, den);
         lrs_set_row_mp(P, Q, i, num, den, GE);
     }
     lrs_clear_mp_vector(num, Q->n);
@@ -290,7 +329,8 @@ FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const std::string& file
 
 int FeasibleMuscleForceAnalysis::begin(const State& s) {
     if (!proceed()) return 0;
-
+    testVertexEnumeration();
+    exit(0);
     // check if muscles are disabled
     const auto& muscleSet = _model->getMuscles();
     for (int i = 0; i < muscleSet.getSize(); i++) {

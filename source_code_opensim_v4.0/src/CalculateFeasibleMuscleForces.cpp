@@ -50,9 +50,11 @@ void run() {
 int main(int argc, char *argv[]) {
     try {
         run();
+        getchar();
     }
     catch (exception &e) {
         cout << e.what() << endl;
+        getchar();
         return -1;
     }
     return 0;

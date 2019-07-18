@@ -12,11 +12,7 @@
 #include <iostream>
 #include <OpenSim/OpenSim.h>
 #include "Settings.h"
-#ifdef _WIN32
-#include "dirent/dirent.h"
-#else
 #include <dirent.h>
-#endif
 
 using namespace OpenSim;
 using namespace std;

@@ -1,8 +1,19 @@
 # dependencies
+if (WIN32)
+    include_directories(unistd_win32/)
+    # include_directories(gmp_win32/)
+    #link_directories(${CMAKE_CURRENT_SOURCE_DIR}/gmp_win32/)
+    #find_library(gmp
+    #             NAMES gmp
+    #             PATHS ${CMAKE_CURRENT_SOURCE_DIR}/gmp_win32/
+    #             PATH_SUFFIXES lib)
+endif()
 # add_compile_definitions(LRSLONG)
-add_compile_definitions(GMP)
+# add_compile_definitions(GMP) # may not work with old versions
+# add_definitions(-DGMP)
+add_definitions(-DLRSLONG)
 include_directories(lrslib/)
-set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES} gmp)
+set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES} ${gmp})
 
 # FeasibleMuscleForceAnalysis
 file(GLOB sources *.cpp internal/*.cpp lrslib/*.c)
