@@ -1,7 +1,8 @@
 /**
  * @file FeasibleMuscleForceAnalysis.h
  *
- * \brief TODO
+ * \brief This analysis calculates the feasible muscle forces that satisfy both
+ * the motion under study and the physiological muscle constraints.
  *
  * @author Dimitar Stanev <stanev@ece.upatras.gr>
  *
@@ -27,21 +28,22 @@ namespace OpenSim {
                                  "Muscle forces output storage from static optimization tool");
     public:
         FeasibleMuscleForceAnalysis();
-        FeasibleMuscleForceAnalysis(const std::string& aFileName);
+        FeasibleMuscleForceAnalysis(const std::string& fileName);
         int begin(const SimTK::State& s) override;
-        int step(const SimTK::State& s, int stepNumber) override;
+        int step(const SimTK::State& s, int step) override;
         int end(const SimTK::State& s) override;
-        int printResults(const std::string& aBaseName,
-                         const std::string& aDir = "",
-                         double aDT = -1.0,
-                         const std::string& aExtension = ".sto") override;
+        int printResults(const std::string& baseName,
+                         const std::string& dir = "",
+                         double dt= -1.0,
+                         const std::string& extension = ".sto") override;
     private:
         void setNull();
         int record(const SimTK::State& s);
     private:
         SimTK::ReferencePtr<OpenSim::Storage> idStorage, soStorage;
+	SimTK::Vector fmMax;
 	// [{t0, feasible muscle forces}, ..., {tf, feasible muscle forces}]
-	std::vector<std::pair<double, std::vector<SimTK::Vector>>> fs;
+	std::vector<std::pair<double, std::vector<SimTK::Vector>>> feasibleMuscleForces;
 	int smallestPolytope;
     };
 }

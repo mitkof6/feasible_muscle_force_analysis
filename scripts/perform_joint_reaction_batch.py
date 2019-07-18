@@ -50,7 +50,7 @@ for i, force_file in enumerate(tqdm(feasible_force_files)):
     if i < previous_iteration:
          continue
 
-    if i > previous_iteration + 1000:
+    if i > previous_iteration + 700:
         print('please terminate python and rerun this script (RAM usage problem)')
         break
     print(force_file)

@@ -1,5 +1,5 @@
-#+TITLE: An Open-Source OpenSim Oculomotor Model for Kinematics and Dynamics Simulation
-#+AUTHOR: Konstantinos Filip, Dimitar Stanev, Konstantinos Moustakas
+#+TITLE: OpenSim plugin for calculating the feasible muscle forces
+#+AUTHOR: Dimitar Stanev
 #+EMAIL: stanev@ece.upatras.gr
 #+OPTIONS: email:t author:t date:nil toc:nil \n:nil num:nil
 #+LATEX_HEADER: \usepackage{fullpage}
@@ -10,20 +10,31 @@
 
 * Description
 
-An open-source OpenSim oculomotor. The project is organized as follows:
+This project contains an OpenSim v4.0 plugin for calculating the feasible muscle
+forces that satisfy the movement and physiological muscle constraints. The
+plugin also contains two executables, namely one for calculating the feasible
+muscle forces and one for calculating the feasible joint reaction loads. The
+latter operation can be performed by the python scripts (contains visualization
+utilities).
 
-- *doc* contains model documentation
-- *model* contains OpenSim .osim model related files
-- *source_code* contains the fixation controller plugin
-- *release* contains OpenSim 3.3/4.0 x64 plugin
+- *data* contains OpenSim .osim model related files
+- *source_code* contains the feasible muscle forces analysis plugin
+- *scripts* python scripts for calculating the feasible joint reaction loads
+- *release* contains OpenSim v4.0 x64 pre-build plugin
 
-* Acknowledge
+* Acknowledgments
 
-[1] K. Filip, D. Stanev, and K. Moustakas (2018). An Open-Source OpenSim
-Oculomotor Model for Kinematics and Dynamics Simulation, arXiv:1807.07332
-[physics.bio-ph].
+[1] D. Stanev and K. Moustakas, Modeling Musculoskeletal Kinematic and Dynamic
+Redundancy Using Null Space Projection, PLoS ONE, 14(1): e0209171, Jan. 2019,
+https://doi.org/10.1371/journal.pone.0209171
 
-[2] SimTK project: https://simtk.org/projects/eye
+[2] D. Stanev and K. Moustakas, Stiffness Modulation of Redundant
+Musculoskeletal Systems, Journal of Biomechanics, vol. 85, pp. 101-107,
+Mar. 2019, https://doi.org/10.1016/j.jbiomech.2019.01.017
+
+[3] SimTK project: https://simtk.org/projects/redundancy
+
+[4] SimTK project: https://simtk.org/projects/stiffness
 
 #+BEGIN_EXPORT html
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img
