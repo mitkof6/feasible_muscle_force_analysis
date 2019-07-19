@@ -20,7 +20,7 @@ using namespace std;
 void run() {
     auto subjectDir = DATA_DIR + "/gait1018/";
     auto resultsDir = subjectDir + "results/";
-    auto outputDir = resultsDir + "feasible_muscle_forces/";
+    auto outputDir = resultsDir + "feasible_muscle_forces2/";
     auto modelFile = subjectDir + "subject01_scaled.osim";
     auto ikFile = resultsDir + "subject01_walk1_ik.mot";
     auto idFile = resultsDir + "subject01_inverse_dynamics.sto";
@@ -33,6 +33,12 @@ void run() {
     feasibleForces->setModel(model);
     feasibleForces->set_so_results(soFile);
     feasibleForces->set_id_results(idFile);
+    Array<string> excludedCoordinates;
+    excludedCoordinates.append("pelvis_tilt");
+    excludedCoordinates.append("pelvis_tx");
+    excludedCoordinates.append("pelvis_ty");
+    excludedCoordinates.append("lumbar_extension");
+    feasibleForces->set_excluded_coordiantes(excludedCoordinates);
     model.addAnalysis(feasibleForces);
 
     AnalyzeTool analysis;

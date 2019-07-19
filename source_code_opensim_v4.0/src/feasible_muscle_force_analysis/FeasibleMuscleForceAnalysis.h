@@ -26,6 +26,9 @@ namespace OpenSim {
                                  "Generalized forces output storage from inverse dynamics tool");
         OpenSim_DECLARE_PROPERTY(so_results, std::string,
                                  "Muscle forces output storage from static optimization tool");
+	OpenSim_DECLARE_LIST_PROPERTY(
+	    excluded_coordiantes, std::string,
+	    "A list of excluded coordinates (e.g., pelvis) for filtering out the moment arm matrix");
     public:
         FeasibleMuscleForceAnalysis();
         FeasibleMuscleForceAnalysis(const std::string& fileName);
@@ -41,9 +44,14 @@ namespace OpenSim {
         int record(const SimTK::State& s);
     private:
         SimTK::ReferencePtr<OpenSim::Storage> idStorage, soStorage;
+	// Model coordinates that are used for the analysis. These are the
+	// coordinates of the model without the excluded_coordinates (property).
+	std::vector<int> activeCoordinateIndices;
+	// Maximum isometric force
 	SimTK::Vector fmMax;
 	// [{t0, feasible muscle forces}, ..., {tf, feasible muscle forces}]
 	std::vector<std::pair<double, std::vector<SimTK::Vector>>> feasibleMuscleForces;
+	// The polytope with the smallest number of vertices. 
 	int smallestPolytope;
     };
 }

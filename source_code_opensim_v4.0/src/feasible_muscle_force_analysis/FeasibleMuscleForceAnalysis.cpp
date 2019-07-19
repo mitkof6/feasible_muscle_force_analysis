@@ -2,7 +2,7 @@
  * TODO:
  *     1. Check if coordinates and muscles are disabled (DONE)
  *     2. Use nonlinear muscle model
- *     3. Use generalized forces instead of so results
+ *     3. Use generalized forces instead of so results (DONE)
  *     4. Use largest polytope instead of the smallest
  **/
 #include "FeasibleMuscleForceAnalysis.h"
@@ -60,13 +60,15 @@ public:
  * current state. The calculations assume that all the coordinates and muscles
  * are enabled.
  */
-Matrix calculateMomentArm(const State& s, const Model& model) {
+Matrix calculateMomentArm(const State& s, const Model& model,
+			  const vector<int>& activeCoordinateIndices) {
     const auto& coordinateSet = model.getCoordinateSet();
     const auto& muscleSet = model.getMuscles();
-    Matrix R(coordinateSet.getSize(), muscleSet.getSize());
-    for (int i = 0; i < coordinateSet.getSize(); i++) {
+    Matrix R(activeCoordinateIndices.size(), muscleSet.getSize());
+    for (int i = 0; i < activeCoordinateIndices.size(); i++) {
         for (int j = 0; j < muscleSet.getSize(); j++) {
-            R[i][j] = muscleSet[j].computeMomentArm(s, coordinateSet[i]);
+            R[i][j] = muscleSet[j].computeMomentArm(
+		s, coordinateSet[activeCoordinateIndices[i]]);
         }
     }
     return R;
@@ -82,6 +84,13 @@ Vector getMaxIsometricForce(const Model& model) {
         fMax[i] = muscleSet[i].getMaxIsometricForce();
     }
     return fMax;
+}
+
+Matrix pInv(const Matrix& A) {
+    Matrix AInv;
+    FactorSVD svd(A);
+    svd.inverse(AInv);
+    return AInv;
 }
 
 Matrix calculateNullSpace(const Matrix& A, double atol=1e-13, double rtol=0) {
@@ -274,6 +283,8 @@ void testVertexEnumeration() {
 
 FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis() : Analysis() {
     setNull();
+    // testVertexEnumeration();
+    // testNullSpace();
 }
 
 FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const std::string& fileName)
@@ -284,11 +295,7 @@ FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const std::string& file
 
 int FeasibleMuscleForceAnalysis::begin(const State& s) {
     if (!proceed()) return 0;
-    
-    testVertexEnumeration();
-    // testNullSpace();
-    exit(0);
-    
+       
     // check if muscles are disabled
     const auto& muscleSet = _model->getMuscles();
     for (int i = 0; i < muscleSet.getSize(); i++) {
@@ -297,11 +304,30 @@ int FeasibleMuscleForceAnalysis::begin(const State& s) {
         }
     }
 
+    // initialize active model coordinates
+    cout << "Active coordinate indices: ";
+    const auto& coordinateSet = _model->getCoordinateSet();
+    for (int i = 0; i < coordinateSet.getSize(); i++) {
+	bool exclude = false;
+	for (int j = 0; j < getProperty_excluded_coordiantes().size(); j++) {
+	    if (coordinateSet[i].getName() == get_excluded_coordiantes(j)) {
+		exclude = true;
+		break;
+	    }
+	}
+	if (!exclude) {
+	    activeCoordinateIndices.push_back(i);
+	    cout << i << "\t";
+	}
+    }
+    cout << endl;
+
     // setup internal variables
     fmMax = getMaxIsometricForce(*_model);
     feasibleMuscleForces.clear();
     smallestPolytope = numeric_limits<int>::max();
     soStorage = new Storage(get_so_results());
+    idStorage = new Storage(get_id_results());
 
     return record(s);
 }
@@ -339,9 +365,11 @@ int FeasibleMuscleForceAnalysis::printResults(const string& baseName,
         storage.setColumnLabels(labels);
         storage.setDescription(description);
         for (int j = 0; j < feasibleMuscleForces.size(); j++) {
-            storage.append(feasibleMuscleForces[j].first, feasibleMuscleForces[j].second[i]);
+            storage.append(feasibleMuscleForces[j].first,
+			   feasibleMuscleForces[j].second[i]);
         }
-        Storage::printResult(&storage, baseName + "_" + storage.getName(), dir, dt, extension);
+        Storage::printResult(&storage, baseName + "_" + storage.getName(),
+			     dir, dt, extension);
     }
 
     return 0;
@@ -351,6 +379,7 @@ void FeasibleMuscleForceAnalysis::setNull() {
     setName("FeasibleMuscleForceAnalysis");
     constructProperty_id_results("");
     constructProperty_so_results("");
+    constructProperty_excluded_coordiantes(Array<string>());
 }
 
 int FeasibleMuscleForceAnalysis::record(const State& s) {
@@ -359,11 +388,24 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     // get necessary quantities
     _model->realizePosition(s);
     auto m = _model->getMuscles().getSize();
-    auto R = calculateMomentArm(s, *_model);
+    auto n = s.getNQ();
+    auto R = calculateMomentArm(s, *_model, activeCoordinateIndices);
     auto NR = calculateNullSpace(R);
-    Vector fmPar(m);
-    soStorage->getDataAtTime(s.getTime(), m, fmPar);
+    auto RInv = pInv(R);
 
+    // simple method fmPar = fm from static optimization
+    // Vector fmPar(m);
+    // soStorage->getDataAtTime(s.getTime(), m, fmPar);
+
+    // fmPar = R+ tau
+    Vector tauTemp(n);
+    idStorage->getDataAtTime(s.getTime(), n, tauTemp);
+    Vector tau(activeCoordinateIndices.size());
+    for (int i = 0; i < activeCoordinateIndices.size(); i++) {
+	tau[i] = tauTemp[activeCoordinateIndices[i]];
+    }
+    auto fmPar = RInv * tau;
+    
     // formulate feasible inequalities
     Matrix Z;
     Vector b;
@@ -378,6 +420,7 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     if (fm0.nrow() == 0 || fm0.ncol() == 0) {
         cout << "*** warning: invalid vertex enumeration solution at: "
              << s.getTime() << " ***" << endl;
+	// getchar();
         return 0;
     }
 
