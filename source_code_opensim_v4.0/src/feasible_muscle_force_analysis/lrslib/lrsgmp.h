@@ -209,9 +209,11 @@ void lrs_getdigits (long *a, long *b);	/* send digit information to user        
 
 void stringcpy (char *s, char *t);	/* copy t to s pointer version                            */
 
+#ifndef WIN32
 #ifndef __STDC__
 void *calloc ();
 void *malloc ();
+#endif
 #endif
 
 void *xcalloc (long n, long s, long l, char *f);

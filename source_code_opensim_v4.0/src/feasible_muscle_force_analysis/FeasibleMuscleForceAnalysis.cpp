@@ -285,9 +285,9 @@ FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const std::string& file
 int FeasibleMuscleForceAnalysis::begin(const State& s) {
     if (!proceed()) return 0;
     
-    // testVertexEnumeration();
+    testVertexEnumeration();
     // testNullSpace();
-    // exit(0);
+    exit(0);
     
     // check if muscles are disabled
     const auto& muscleSet = _model->getMuscles();

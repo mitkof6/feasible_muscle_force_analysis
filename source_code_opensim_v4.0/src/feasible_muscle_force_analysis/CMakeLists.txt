@@ -1,5 +1,9 @@
 # dependencies
 add_definitions(-DGMP)
+if (WIN32)
+  include_directories(lrslib/unistd_win/)
+  include_directories(lrslib/gmp_win64/)
+endif()
 add_subdirectory(lrslib)
 include_directories(lrslib/)
 set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES} lrs)
