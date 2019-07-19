@@ -11,9 +11,10 @@
 #include <limits>
 #include <OpenSim/Simulation/Model/Model.h>
 #include <OpenSim/Simulation/Model/Muscle.h>
+
 extern "C" {
 #undef __cplusplus
-#include "lrslib/lrslib.h"
+#include "lrslib.h"
 FILE* lrs_ofp = stdout;
 FILE* lrs_ifp = stdin;
 }
@@ -284,7 +285,7 @@ FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const std::string& file
 int FeasibleMuscleForceAnalysis::begin(const State& s) {
     if (!proceed()) return 0;
     
-    testVertexEnumeration();
+    // testVertexEnumeration();
     // testNullSpace();
     // exit(0);
     
