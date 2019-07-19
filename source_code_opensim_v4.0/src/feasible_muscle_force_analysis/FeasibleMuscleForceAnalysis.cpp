@@ -12,7 +12,10 @@
 #include <OpenSim/Simulation/Model/Model.h>
 #include <OpenSim/Simulation/Model/Muscle.h>
 extern "C" {
+#undef __cplusplus
 #include "lrslib/lrslib.h"
+FILE* lrs_ofp = stdout;
+FILE* lrs_ifp = stdin;
 }
 
 using namespace std;
