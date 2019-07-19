@@ -141,29 +141,6 @@ void constructLinearMuscleInequality(const Matrix& NR,
     // }
 }
 
-long euclidianGCD(long a, long b) {
-    if (a == 0)
-        return b;
-    else if (b == 0)
-        return a;
-
-    if (a < b)
-        return euclidianGCD(a, b % a);
-    else
-        return euclidianGCD(b, a % b);
-}
-
-void fraction(const double& input, long& numerator, long& denominator) {
-    double integral = floor(input);
-    double frac = input - integral;
-    const long precision = BASE;
-    long gcd_ = euclidianGCD(round(frac * precision), precision);
-    denominator = precision / gcd_;
-    numerator = round(frac * precision) / gcd_;
-    numerator += integral * denominator;
-    // cout << input << " = " << numerator << " / " << denominator << endl;
-}
-
 Matrix vertexEnumeration(const Matrix& A, const Vector& b) {
     // initialize
     if (!lrs_init((char*) "lrs")) {
@@ -197,25 +174,14 @@ Matrix vertexEnumeration(const Matrix& A, const Vector& b) {
                 value = b[i - 1];
             }
             if (std::abs(value) < 0.001) value = 0.0;
-#ifdef LRSLONG
-	    fraction(value, *num[j], *den[j]);
-	    cout << value << "=" << *num[j] << " / " << *den[j] << endl;
-	    cout << abs(value - (1.0 * *num[j]) / *den[j]) << endl;
-#else
-#ifdef GMP
             mpq_t op;
             mpq_init(op);
             mpq_set_d(op, value);
             mpq_canonicalize(op);
             itomp(mpz_get_si(mpq_numref(op)), num[j]);
-            itomp(mpz_get_si(mpq_denref(op)), den[j]);
-            
-            cout << value << endl;
-            cout << mpz_get_si(mpq_numref(op)) << " / " << mpz_get_si(mpq_denref(op)) <<  endl;
-	     //cout << value << "=" << mptoi(num[j]) << " / " << mptoi(den[j]) << endl;
-	     //cout << abs(value - (1.0 * mptoi(num[j])) / mptoi(den[j])) << endl;
-#endif
-#endif
+            itomp(mpz_get_si(mpq_denref(op)), den[j]);        
+            // cout << value << endl;
+            // cout << mpz_get_si(mpq_numref(op)) << " / " << mpz_get_si(mpq_denref(op)) <<  endl;
         }
         //lrs_printoutput (Q, num);
         //lrs_printoutput (Q, den);
@@ -257,7 +223,6 @@ Matrix vertexEnumeration(const Matrix& A, const Vector& b) {
         for (int i = 1; i < Q->n; i++) {
             double res;
             rattodouble(output[i], output[0], &res);
-            cout << res << endl;
             result.push_back(res);
         }
         rows++;

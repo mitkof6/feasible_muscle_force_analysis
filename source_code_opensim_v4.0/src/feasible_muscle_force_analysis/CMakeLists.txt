@@ -1,13 +1,5 @@
 # lrslib
 if (WIN32)
-  # add_definitions(-DLRSLONG)
-  # file(GLOB lrs_sources
-    # lrslib/lrslib.c
-    # lrslib/lrslong.c)
-  # file(GLOB lrs_includes
-    # lrslib/lrslib.h
-    # lrslib/lrslong.h)
-  # include_directories(lrslib/unistd_win32/)
   add_definitions(-DGMP)
   file(GLOB lrs_sources
     lrslib/lrslib.c
@@ -15,11 +7,11 @@ if (WIN32)
   file(GLOB lrs_includes
     lrslib/lrslib.h
     lrslib/lrsgmp.h)
-  include_directories(lrslib/unistd_win32/)
-  include_directories(lrslib/gmp/include)
+  include_directories(lrslib/unistd/)
+  include_directories(lrslib/gmp_win64/include)
   find_library(gmp
     NAMES libgmp-10
-    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/lrslib/gmp/lib/
+    PATHS ${CMAKE_CURRENT_SOURCE_DIR}/lrslib/gmp_win64/lib/
     PATH_SUFFIXES lib)
   set(lrs_libraries ${gmp})
 else ()
