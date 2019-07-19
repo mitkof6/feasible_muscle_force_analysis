@@ -33,6 +33,7 @@ using namespace std;
 #endif
 
 #ifdef GMP
+ #undef __cplusplus
  #include "gmp.h"
 #elif defined(FLINT)
  #include "fmpz.h"

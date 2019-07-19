@@ -199,24 +199,26 @@ Matrix vertexEnumeration(const Matrix& A, const Vector& b) {
             if (std::abs(value) < 0.001) value = 0.0;
 #ifdef LRSLONG
 	    fraction(value, *num[j], *den[j]);
-	    // cout << value << "=" << *num[j] << " / " << *den[j] << endl;
-	    // cout << abs(value - (1.0 * *num[j]) / *den[j]) << endl;
+	    cout << value << "=" << *num[j] << " / " << *den[j] << endl;
+	    cout << abs(value - (1.0 * *num[j]) / *den[j]) << endl;
 #else
 #ifdef GMP
             mpq_t op;
             mpq_init(op);
             mpq_set_d(op, value);
-            //mpq_canonicalize(op);
+            mpq_canonicalize(op);
             itomp(mpz_get_si(mpq_numref(op)), num[j]);
             itomp(mpz_get_si(mpq_denref(op)), den[j]);
-            mpq_clear(op);
-	    // cout << value << "=" << mptoi(num[j]) << " / " << mptoi(den[j]) << endl;
-	    // cout << abs(value - (1.0 * mptoi(num[j])) / mptoi(den[j])) << endl;
+            
+            cout << value << endl;
+            cout << mpz_get_si(mpq_numref(op)) << " / " << mpz_get_si(mpq_denref(op)) <<  endl;
+	     //cout << value << "=" << mptoi(num[j]) << " / " << mptoi(den[j]) << endl;
+	     //cout << abs(value - (1.0 * mptoi(num[j])) / mptoi(den[j])) << endl;
 #endif
 #endif
         }
-        // lrs_printoutput (Q, num);
-        // lrs_printoutput (Q, den);
+        //lrs_printoutput (Q, num);
+        //lrs_printoutput (Q, den);
         lrs_set_row_mp(P, Q, i, num, den, GE);
     }
     lrs_clear_mp_vector(num, Q->n);
@@ -246,15 +248,16 @@ Matrix vertexEnumeration(const Matrix& A, const Vector& b) {
     do {
         // get solution into output
         for (int col = 0; col <= P->d; col++) {
-            // if (lrs_getsolution (P, Q, output, col)) {
-            //   lrs_printoutput (Q, output);
-            // }
-            // lrs_getsolution(P, Q, output, col);
+  /*           if (lrs_getsolution (P, Q, output, col)) {
+               lrs_printoutput (Q, output);
+             }*/
+            lrs_getsolution(P, Q, output, col);
         }
         // transform as double
         for (int i = 1; i < Q->n; i++) {
             double res;
             rattodouble(output[i], output[0], &res);
+            cout << res << endl;
             result.push_back(res);
         }
         rows++;
@@ -313,7 +316,7 @@ FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const std::string& file
 int FeasibleMuscleForceAnalysis::begin(const State& s) {
     if (!proceed()) return 0;
     
-    // testVertexEnumeration();
+    testVertexEnumeration();
     // testNullSpace();
     // exit(0);
     
