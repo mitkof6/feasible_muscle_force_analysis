@@ -24,8 +24,8 @@ namespace OpenSim {
     public:
         OpenSim_DECLARE_PROPERTY(id_results, std::string,
                                  "Generalized forces output storage from inverse dynamics tool");
-        OpenSim_DECLARE_PROPERTY(so_results, std::string,
-                                 "Muscle forces output storage from static optimization tool");
+        OpenSim_DECLARE_PROPERTY(use_linear_muscle_model, bool,
+                                 "Use linear or nonlinear muscle model");
 	OpenSim_DECLARE_LIST_PROPERTY(
 	    excluded_coordiantes, std::string,
 	    "A list of excluded coordinates (e.g., pelvis) for filtering out the moment arm matrix");
@@ -43,7 +43,7 @@ namespace OpenSim {
         void setNull();
         int record(const SimTK::State& s);
     private:
-        SimTK::ReferencePtr<OpenSim::Storage> idStorage, soStorage;
+        SimTK::ReferencePtr<OpenSim::Storage> idStorage;
 	// Model coordinates that are used for the analysis. These are the
 	// coordinates of the model without the excluded_coordinates (property).
 	std::vector<int> activeCoordinateIndices;

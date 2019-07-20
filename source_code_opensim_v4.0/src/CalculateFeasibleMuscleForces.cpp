@@ -19,20 +19,21 @@ using namespace std;
 
 void run() {
     auto subjectDir = DATA_DIR + "/gait1018/";
+    // auto subjectDir = DATA_DIR + "/gait1848/";
     auto resultsDir = subjectDir + "results/";
     auto outputDir = resultsDir + "feasible_muscle_forces2/";
     auto modelFile = subjectDir + "subject01_scaled.osim";
     auto ikFile = resultsDir + "subject01_walk1_ik.mot";
     auto idFile = resultsDir + "subject01_inverse_dynamics.sto";
-    auto soFile = resultsDir + "subject01_StaticOptimization_force.sto";
-
+    // auto  idFile = resultsDir + "subject01_StaticOptimization_force.sto";
+    
     Model model(modelFile);
     Storage motion(ikFile);
 
     FeasibleMuscleForceAnalysis* feasibleForces = new FeasibleMuscleForceAnalysis();
     feasibleForces->setModel(model);
-    feasibleForces->set_so_results(soFile);
     feasibleForces->set_id_results(idFile);
+    feasibleForces->set_use_linear_muscle_model(false);
     Array<string> excludedCoordinates;
     excludedCoordinates.append("pelvis_tilt");
     excludedCoordinates.append("pelvis_tx");
