@@ -4,3 +4,5 @@
 *~
 *.log
 *.pyc
+/README.tex
+/data/gait1018/results/muscle_coordinates.csv

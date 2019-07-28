@@ -80,6 +80,7 @@ public:
         AnalyzeTool tool;
         tool.setName(parameters.subjectName);
         tool.setModel(parameters.model);
+	tool.setSolveForEquilibrium(true);
         tool.setInitialTime(motion.getFirstTime());
         tool.setFinalTime(motion.getLastTime());
         tool.setCoordinatesFileName(parameters.inverseKinematicsMotion);
@@ -119,8 +120,8 @@ void run(int argc, char *argv[]) {
 
     auto subjectDir = DATA_DIR + "/gait1018/";
     auto resultsDir = subjectDir + "results/";
-    auto feasibleForcesDir = resultsDir + "feasible_muscle_forces2/";
-    auto outputDir = resultsDir + "joint_reaction_analyses2/";
+    auto feasibleForcesDir = resultsDir + "feasible_muscle_forces/";
+    auto outputDir = resultsDir + "joint_reaction_analyses/";
     auto modelFile = subjectDir + "subject01_scaled.osim";
     auto groundReactionXMLTemplate = subjectDir + "subject01_walk1_grf.xml";
     auto groundReactionForces = subjectDir + "subject01_walk1_grf.mot";

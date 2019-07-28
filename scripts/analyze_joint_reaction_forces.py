@@ -4,14 +4,14 @@
 # perform_joint_reaction_batch.py, the joint of interest and the mass of the
 # subject must be provided.
 #
-# @author Dimitar Stanev (jimstanev@gmail.com)
+# @author Dimitar Stanev (stanev@ece.upatras.gr)
 #
 import os
 import matplotlib.pyplot as plt
 import numpy as np
 # import seaborn as sns
 from tqdm import tqdm
-# from opensim_utils import readMotionFile, index_containing_substring
+from utils import readMotionFile, index_containing_substring
 plt.rcParams['font.size'] = 13
 
 ###############################################################################
@@ -20,7 +20,7 @@ plt.rcParams['font.size'] = 13
 subject_dir = os.getcwd() + '/../data/gait1018/'
 os_jra_file = subject_dir + \
     'results/subject01_JointReaction_ReactionLoads.sto'
-jra_results_dir = subject_dir + 'results/joint_reaction_analyses2/'
+jra_results_dir = subject_dir + 'results/joint_reaction_analyses/'
 figures_dir = subject_dir + 'results/fig/'
 
 collect = True
@@ -36,96 +36,6 @@ if not os.path.isfile(os_jra_file):
 if not (os.path.isdir(jra_results_dir) and
         os.path.isdir(figures_dir)):
     raise RuntimeError('required folders do not exist')
-
-
-###############################################################################
-# main
-
-def readMotionFile(filename):
-    """Reads OpenSim .sto files.
-
-    Parameters
-    ----------
-    filename: str
-        absolute path to the .sto file
-
-    Returns
-    -------
-    header: list of str
-        the header of the .sto
-    labels: list of str
-        the labels of the columns
-    data: list of lists
-        an array of the data
-
-    """
-
-    if not os.path.exists(filename):
-        print('file do not exists')
-
-    file_id = open(filename, 'r')
-
-    # read header
-    next_line = file_id.readline()
-    header = [next_line]
-    nc = 0
-    nr = 0
-    while 'endheader' not in next_line:
-        if 'datacolumns' in next_line:
-            nc = int(next_line[next_line.index(' ') + 1:len(next_line)])
-        elif 'datarows' in next_line:
-            nr = int(next_line[next_line.index(' ') + 1:len(next_line)])
-        elif 'nColumns' in next_line:
-            nc = int(next_line[next_line.index('=') + 1:len(next_line)])
-        elif 'nRows' in next_line:
-            nr = int(next_line[next_line.index('=') + 1:len(next_line)])
-
-        next_line = file_id.readline()
-        header.append(next_line)
-
-    # process column labels
-    next_line = file_id.readline()
-    if next_line.isspace() is True:
-        next_line = file_id.readline()
-
-    labels = next_line.split()
-
-    # get data
-    data = []
-    for i in range(1, nr + 1):
-        d = [float(x) for x in file_id.readline().split()]
-        data.append(d)
-
-    file_id.close()
-
-    return header, labels, data
-
-
-def index_containing_substring(list_str, pattern):
-    """For a given list of strings finds the index of the element that contains the
-    substring.
-
-    Parameters
-    ----------
-    list_str: list of str
-
-    pattern: str
-         pattern
-
-
-    Returns
-    -------
-    indices: list of int
-         the indices where the pattern matches
-
-    """
-    indices = []
-    for i, s in enumerate(list_str):
-        if pattern in s:
-            indices.append(i)
-
-    return indices
-
 
 ###############################################################################
 # main
@@ -220,5 +130,5 @@ fig.savefig(figures_dir + joint + '.pdf',
             format='pdf', dpi=300)
 fig.savefig(figures_dir + joint + '.png',
             format='png', dpi=300)
-fig.savefig(figures_dir + joint + '.tif',
-            format='tif', dpi=300)
+# fig.savefig(figures_dir + joint + '.tif',
+#             format='tif', dpi=300)

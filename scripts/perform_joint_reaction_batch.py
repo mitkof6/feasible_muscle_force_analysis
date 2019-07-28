@@ -4,7 +4,7 @@
 # directory, model, inverse kinematics motion, ground reaction forces, reserve
 # actuators (not used) and the directory containing the feasible muscle forces.
 #
-# @author Dimitar Stanev (jimstanev@gmail.com)
+# @author Dimitar Stanev (stanev@ece.upatras.gr)
 #
 import os
 from tqdm import tqdm

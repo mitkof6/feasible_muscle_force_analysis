@@ -1,14 +1,6 @@
-#+TITLE: OpenSim plugin for calculating the feasible muscle forces
-#+AUTHOR: Dimitar Stanev
-#+EMAIL: stanev@ece.upatras.gr
-#+OPTIONS: email:t author:t date:nil toc:nil \n:nil num:nil
-#+LATEX_HEADER: \usepackage{fullpage}
-#+LATEX_HEADER: \usepackage{parskip}
-#+LATEX_HEADER: \usepackage{bm}
-#+LATEX_HEADER: \newcommand{\mat}[1]{\bm{#1}}
-#+LATEX_HEADER: \renewcommand*{\vec}[1]{\bm{#1}}
+# OpenSim plugin for calculating the feasible muscle forces
 
-* Description
+## Description
 
 This project contains an OpenSim v4.0 plugin for calculating the feasible muscle
 forces that satisfy the movement and physiological muscle constraints. The
@@ -20,9 +12,18 @@ utilities).
 - *data* contains OpenSim .osim model related files
 - *source_code* contains the feasible muscle forces analysis plugin
 - *scripts* python scripts for calculating the feasible joint reaction loads
-- *release* contains OpenSim v4.0 x64 pre-build plugin
+- *release* contains OpenSim v4.0 x64 pre-build plugin (not working on Windows yet)
 
-* Acknowledgments
+## Dependencies
+
+This project has been tested on Linux. On Windows there is an issue with the gmp
+library, which is used for the vertex enumeration (lrs).
+
+- OpenSim v4.0 C++ API
+- OpenSim v4.0 Python 3.7 bindings
+- gmp library (https://gmplib.org/)
+
+## Acknowledgments
 
 [1] D. Stanev and K. Moustakas, Modeling Musculoskeletal Kinematic and Dynamic
 Redundancy Using Null Space Projection, PLoS ONE, 14(1): e0209171, Jan. 2019,
@@ -36,11 +37,9 @@ Mar. 2019, https://doi.org/10.1016/j.jbiomech.2019.01.017
 
 [4] SimTK project: https://simtk.org/projects/stiffness
 
-#+BEGIN_EXPORT html
 <a rel="license" href="http://creativecommons.org/licenses/by/4.0/"><img
 alt="Creative Commons License" style="border-width:0"
 src="https://i.creativecommons.org/l/by/4.0/88x31.png" /></a><br />This work is
 licensed under a <a rel="license"
 href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution
 4.0 International License</a>.
-#+END_EXPORT
