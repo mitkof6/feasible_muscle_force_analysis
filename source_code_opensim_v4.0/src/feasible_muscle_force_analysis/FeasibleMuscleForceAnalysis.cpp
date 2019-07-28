@@ -1,7 +1,7 @@
 /*
  * TODO:
  *     1. Check if coordinates and muscles are disabled (DONE)
- *     2. Use nonlinear muscle model
+ *     2. Use nonlinear muscle model (DONE: ignore tendon compliance model)
  *     3. Use generalized forces instead of so results (DONE)
  *     4. Use largest polytope instead of the smallest
  *     5. Sample the feasible polytope to generate internal solutions 
@@ -202,7 +202,7 @@ namespace {
      *     fm = fmMax (am fmL fmV + fmPE)
      *
      *     Z = [-NR; NR]
-     *     b = [fmPar - fmMax o fmPE; fmMax o (fmL o fmV + fmPE) - fmPar]
+     *     b = [fmPar - fmMax o cosAlpha o fmPE; fmMax o (fmL o fmV + fmPE) o cosAlpha - fmPar]
      *
      * For detailed derivations:
      * <a href="https://doi.org/10.1371/journal.pone.0209171">[Publication]</a>
@@ -213,20 +213,18 @@ namespace {
                                             const Vector& fmL,
                                             const Vector& fmV,
                                             const Vector& fmPE,
+					    const Vector& cosAlpha,
                                             Matrix& Z,
                                             Vector& b) {
         Z = Matrix(2 * NR.nrow(), NR.ncol());
         Z(0, 0, NR.nrow(), NR.ncol()) = -1.0 * NR;
         Z(NR.nrow(), 0, NR.nrow(), NR.ncol()) = NR;
         b = Vector(2 * fmPar.size());
-        b(0, fmPar.size()) = fmPar - fmMax.elementwiseMultiply(fmPE);
+        b(0, fmPar.size()) = fmPar -
+	    fmMax.elementwiseMultiply(fmPE).elementwiseMultiply(cosAlpha);
         b(fmPar.size(), fmPar.size()) =
-            fmMax.elementwiseMultiply(fmL.elementwiseMultiply(fmV) + fmPE) - fmPar;
-
-	// cout << b(0, fmPar.size()) << endl; 
-	// cout << b(fmPar.size(), fmPar.size()) << endl;
-	// cout << b(fmPar.size(), fmPar.size()) - b(0, fmPar.size()) << endl;
-	// getchar();
+            fmMax.elementwiseMultiply(
+		fmL.elementwiseMultiply(fmV) + fmPE).elementwiseMultiply(cosAlpha) - fmPar;
     }
 
     /**
@@ -468,18 +466,13 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     cout << endl << "Analyze at time: " << s.getTime() << endl;
 
     // get necessary quantities
-    _model->realizePosition(s);
     auto m = _model->getMuscles().getSize();
     auto n = s.getNQ();
     auto R = calculateMomentArm(s, *_model, activeCoordinateIndices);
     auto NR = calculateNullSpace(R);
     auto RInv = pInv(R);
 
-    // simple method fmPar = fm from static optimization
-    // Vector fmPar(m);
-    // idStorage->getDataAtTime(s.getTime(), m, fmPar);
-
-    // fmPar = R+ tau
+    // fmPar = R + tau
     Vector tauTemp(n);
     idStorage->getDataAtTime(s.getTime(), n, tauTemp);
     Vector tau(activeCoordinateIndices.size());
@@ -494,15 +487,12 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     if (get_use_linear_muscle_model()) {
         constructLinearMuscleInequality(NR, fmPar, fmMax, Z, b);
     } else{
-	// TODO account for tendon at dynamic stage
-        _model->realizeVelocity(s);
 	Vector cosAlpha = getCosPennationAngle(s, *_model);
         Vector fmL = getActiveForceLengthMultiplier(s, *_model);
         Vector fmV = getForceVelocityMultiplier(s, *_model);
-        Vector fmPE = 0.0 * getPasiveForceMultiplier(s, *_model);
-        constructNonlinearMuscleInequality(NR, fmPar,
-					   fmMax.elementwiseMultiply(cosAlpha),
-					   fmL, fmV, fmPE, Z, b);
+        Vector fmPE = getPasiveForceMultiplier(s, *_model);
+        constructNonlinearMuscleInequality(NR, fmPar, fmMax, fmL, fmV, fmPE,
+					   cosAlpha, Z, b);
     }
 
     // find the vertices of the feasible polytope

@@ -45,6 +45,7 @@ void run() {
     AnalyzeTool analysis;
     analysis.setName("FeasibleMuscleForces");
     analysis.setModel(model);
+    analysis.setSolveForEquilibrium(true);
     analysis.setInitialTime(motion.getFirstTime());
     analysis.setFinalTime(motion.getLastTime());
     analysis.setLowpassCutoffFrequency(6);
