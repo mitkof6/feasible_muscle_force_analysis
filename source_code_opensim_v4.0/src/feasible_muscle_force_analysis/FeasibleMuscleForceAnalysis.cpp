@@ -15,7 +15,7 @@
 
 extern "C" {
 #undef __cplusplus
-#include "lrslib.h"
+#include "lrslib/lrslib.h"
     FILE* lrs_ofp = stdout;
     FILE* lrs_ifp = stdin;
 }

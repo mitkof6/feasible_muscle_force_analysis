@@ -1,17 +1,17 @@
-# dependencies
+# find gmp
 add_definitions(-DGMP)
 if (WIN32)
-  include_directories(lrslib/unistd_win/)
-  include_directories(lrslib/gmp_win64/)
-  error("GMP not working properly on Windows (tested only on Linux)")
+  error("GMP library does not working properly on Windows")
+else()
+  find_package(GMP)
+  include_directories(${GMP_INCLUDES})
+  set(DEPENDENCY_LIBRARIES ${GMP_LIBRARIES})
 endif()
-add_subdirectory(lrslib)
-include_directories(lrslib/)
-set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES} lrs)
+set(DEPENDENCY_LIBRARIES ${OpenSim_LIBRARIES} ${GMP_LIBRARIES})
 
 # FeasibleMuscleForceAnalysis
-file(GLOB sources *.cpp internal/*.cpp)
-file(GLOB includes *.h internal/*.h)
+file(GLOB sources *.cpp internal/*.cpp lrslib/*.c)
+file(GLOB includes *.h internal/*.h lrslib/*.h)
 set(target FeasibleMuscleForceAnalysis)
 add_library(${target} SHARED ${sources} ${includes})
 target_link_libraries (${target} ${DEPENDENCY_LIBRARIES})
@@ -28,6 +28,6 @@ install(
   LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
   ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 
-# install headers
-set(INCLUDE_PREFIX "${CMAKE_INSTALL_INCLUDEDIR}")
-install(FILES ${includes} DESTINATION ${INCLUDE_PREFIX}/${target})
+# # install headers
+# set(INCLUDE_PREFIX "${CMAKE_INSTALL_INCLUDEDIR}")
+# install(FILES ${includes} DESTINATION ${INCLUDE_PREFIX}/${target})

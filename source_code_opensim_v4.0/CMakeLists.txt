@@ -2,6 +2,9 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
 ################################################################################
 
+#include cmake modules
+include(cmake/FindGMP.cmake)
+
 # project
 project(FeasibleMuscleForceAnalysis VERSION 1.0.0)
 
@@ -87,11 +90,11 @@ set(CMAKE_EXTRA_INCLUDE_FILES)
 # configure for new version of OpenSim (v4.0)
 find_package(OpenSim REQUIRED)
 if(OpenSim_FOUND)
-    message(STATUS "OpenSim found at ${OpenSim_DIR}")
-    include_directories(${OpenSim_INCLUDE_DIRS})
-    link_directories(${OpenSim_LIB_DIR})
+  message(STATUS "OpenSim found at ${OpenSim_DIR}")
+  include_directories(${OpenSim_INCLUDE_DIRS})
+  link_directories(${OpenSim_LIB_DIR})
 else()
-    message(FATAL_ERROR "Can't find OpenSim at ${OpenSim_DIR}")
+  message(FATAL_ERROR "Can't find OpenSim at ${OpenSim_DIR}")
 endif()
 
 ################################################################################
