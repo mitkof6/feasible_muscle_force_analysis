@@ -17,18 +17,23 @@
 
 namespace OpenSim {
     /**
-     * \brief TODO
+     * \brief Calculates the feasible muscle forces that satisfy the motion
+     * (from inverse dynamics) and physiological muscle constraints.
      */
     class FeasibleMuscleForceAnalysis_API FeasibleMuscleForceAnalysis : public Analysis {
         OpenSim_DECLARE_CONCRETE_OBJECT(FeasibleMuscleForceAnalysis, Analysis);
     public:
         OpenSim_DECLARE_PROPERTY(id_results, std::string,
-                                 "Generalized forces output storage from inverse dynamics tool");
+                                 "Generalized forces output storage from"
+				 "inverse dynamics tool");
         OpenSim_DECLARE_PROPERTY(use_linear_muscle_model, bool,
                                  "Use linear or nonlinear muscle model");
-	OpenSim_DECLARE_LIST_PROPERTY(
+	OpenSim_DECLARE_PROPERTY(
 	    excluded_coordiantes, std::string,
-	    "A list of excluded coordinates (e.g., pelvis) for filtering out the moment arm matrix");
+	    "A regex for excluded coordinates. Typically, exclude degrees that"
+	    "are not actuated by muscles (e.g., pelvis_*, etc.).");
+	OpenSim_DECLARE_PROPERTY(excluded_muscles, std::string,
+				 "A regex expression for excluded muscles.");
     public:
         FeasibleMuscleForceAnalysis();
         FeasibleMuscleForceAnalysis(const std::string& fileName);
@@ -43,10 +48,11 @@ namespace OpenSim {
         void setNull();
         int record(const SimTK::State& s);
     private:
-        SimTK::ReferencePtr<OpenSim::Storage> idStorage;
-	// Model coordinates that are used for the analysis. These are the
-	// coordinates of the model without the excluded_coordinates (property).
+        OpenSim::Storage idStorage;
+	// Model coordinates that are used for the analysis.
 	std::vector<int> activeCoordinateIndices;
+	// Model muscles that are used in the analysis.
+	std::vector<int> activeMuscleIndices;
 	// Maximum isometric force
 	SimTK::Vector fmMax;
 	// [{t0, feasible muscle forces}, ..., {tf, feasible muscle forces}]

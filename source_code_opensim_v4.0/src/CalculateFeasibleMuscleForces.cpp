@@ -32,12 +32,10 @@ void run() {
     feasibleForces->setModel(model);
     feasibleForces->set_id_results(idFile);
     feasibleForces->set_use_linear_muscle_model(false);
-    Array<string> excludedCoordinates;
-    excludedCoordinates.append("pelvis_tilt");
-    excludedCoordinates.append("pelvis_tx");
-    excludedCoordinates.append("pelvis_ty");
-    excludedCoordinates.append("lumbar_extension");
-    feasibleForces->set_excluded_coordiantes(excludedCoordinates);
+    // exclude pelvis, lumbar and left leg coordinates
+    feasibleForces->set_excluded_coordiantes("^pelvis_.*|^lumbar_.*|.*_l");
+    // exclude left leg muscles
+    feasibleForces->set_excluded_muscles(".*_l");
     model.addAnalysis(feasibleForces);
 
     AnalyzeTool analysis;

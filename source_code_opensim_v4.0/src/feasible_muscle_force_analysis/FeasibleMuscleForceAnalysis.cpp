@@ -1,5 +1,5 @@
 /*
- * TODO:
+ * Things to improve:
  *     1. Check if coordinates and muscles are disabled (DONE)
  *     2. Use nonlinear muscle model (DONE: ignore tendon compliance model)
  *     3. Use generalized forces instead of so results (DONE)
@@ -10,6 +10,7 @@
 #include <cassert>
 #include <ctime>
 #include <limits>
+#include <regex>
 #include <OpenSim/Simulation/Model/Model.h>
 #include <OpenSim/Simulation/Model/Muscle.h>
 
@@ -59,60 +60,66 @@ namespace {
     };
 
     Matrix calculateMomentArm(const State& s, const Model& model,
-                              const vector<int>& activeCoordinateIndices) {
+                              const vector<int>& activeCoordinateIndices,
+			      const vector<int>& activeMuscleIndices) {
         const auto& coordinateSet = model.getCoordinateSet();
         const auto& muscleSet = model.getMuscles();
-        Matrix R(activeCoordinateIndices.size(), muscleSet.getSize());
+        Matrix R(activeCoordinateIndices.size(), activeMuscleIndices.size());
         for (int i = 0; i < activeCoordinateIndices.size(); i++) {
-            for (int j = 0; j < muscleSet.getSize(); j++) {
-                R[i][j] = muscleSet[j].computeMomentArm(
+            for (int j = 0; j < activeMuscleIndices.size(); j++) {
+                R[i][j] = muscleSet[activeMuscleIndices[j]].computeMomentArm(
                     s, coordinateSet[activeCoordinateIndices[i]]);
             }
         }
         return R;
     }
 
-    Vector getMaxIsometricForce(const Model& model) {
+    Vector getMaxIsometricForce(const Model& model,
+				const vector<int>& activeMuscleIndices) {
         const auto& muscleSet = model.getMuscles();
-        Vector fmMax(muscleSet.getSize());
-        for (int i = 0; i < muscleSet.getSize(); i++) {
-            fmMax[i] = muscleSet[i].getMaxIsometricForce();
+        Vector fmMax(activeMuscleIndices.size());
+        for (int i = 0; i < activeMuscleIndices.size(); i++) {
+            fmMax[i] = muscleSet[activeMuscleIndices[i]].getMaxIsometricForce();
         }
         return fmMax;
     }
 
-    Vector getActiveForceLengthMultiplier(const State& s, const Model& model) {
+    Vector getActiveForceLengthMultiplier(const State& s, const Model& model,
+					  const vector<int>& activeMuscleIndices) {
         const auto& muscleSet = model.getMuscles();
-        Vector fmL(muscleSet.getSize());
-        for (int i = 0; i < muscleSet.getSize(); i++) {
-            fmL[i] = muscleSet[i].getActiveForceLengthMultiplier(s);
+        Vector fmL(activeMuscleIndices.size());
+        for (int i = 0; i < activeMuscleIndices.size(); i++) {
+            fmL[i] = muscleSet[activeMuscleIndices[i]].getActiveForceLengthMultiplier(s);
         }
         return fmL;
     }
 
-    Vector getForceVelocityMultiplier(const State& s, const Model& model) {
+    Vector getForceVelocityMultiplier(const State& s, const Model& model,
+				      const vector<int>& activeMuscleIndices) {
         const auto& muscleSet = model.getMuscles();
-        Vector fmV(muscleSet.getSize());
-        for (int i = 0; i < muscleSet.getSize(); i++) {
-            fmV[i] = muscleSet[i].getForceVelocityMultiplier(s);
+        Vector fmV(activeMuscleIndices.size());
+        for (int i = 0; i < activeMuscleIndices.size(); i++) {
+            fmV[i] = muscleSet[activeMuscleIndices[i]].getForceVelocityMultiplier(s);
         }
         return fmV;
     }
 
-    Vector getPasiveForceMultiplier(const State& s, const Model& model) {
+    Vector getPasiveForceMultiplier(const State& s, const Model& model,
+				    const vector<int>& activeMuscleIndices) {
         const auto& muscleSet = model.getMuscles();
-        Vector fmPE(muscleSet.getSize());
-        for (int i = 0; i < muscleSet.getSize(); i++) {
-            fmPE[i] = muscleSet[i].getPassiveForceMultiplier(s);
+        Vector fmPE(activeMuscleIndices.size());
+        for (int i = 0; i < activeMuscleIndices.size(); i++) {
+            fmPE[i] = muscleSet[activeMuscleIndices[i]].getPassiveForceMultiplier(s);
         }
         return fmPE;
     }
 
-    Vector getCosPennationAngle(const State& s, const Model& model) {
+    Vector getCosPennationAngle(const State& s, const Model& model,
+				const vector<int>& activeMuscleIndices) {
         const auto& muscleSet = model.getMuscles();
-        Vector alpha(muscleSet.getSize());
-        for (int i = 0; i < muscleSet.getSize(); i++) {
-            alpha[i] = muscleSet[i].getCosPennationAngle(s);
+        Vector alpha(activeMuscleIndices.size());
+        for (int i = 0; i < activeMuscleIndices.size(); i++) {
+            alpha[i] = muscleSet[activeMuscleIndices[i]].getCosPennationAngle(s);
         }
         return alpha;
     }
@@ -377,37 +384,36 @@ FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const std::string& file
 int FeasibleMuscleForceAnalysis::begin(const State& s) {
     if (!proceed()) return 0;
 
-    // check if muscles are disabled
+    // initialize active model coordinates
+    const auto& coordinateSet = _model->getCoordinateSet();
+    auto excludedCoordinatesRegex = regex(get_excluded_coordiantes());
+    cout << "Active coordinates:" << endl;
+    for (int i = 0; i < coordinateSet.getSize(); i++) {
+	if (!regex_match(coordinateSet[i].getName(), excludedCoordinatesRegex)) {
+		activeCoordinateIndices.push_back(i);
+		cout << coordinateSet[i].getName() << endl;
+        }
+    }
+
+    // check if muscles are disabled and append active muscle coordinates
     const auto& muscleSet = _model->getMuscles();
+    auto excludedMusclesRegex = regex(get_excluded_muscles());
+    cout << "Active muscles:" << endl;
     for (int i = 0; i < muscleSet.getSize(); i++) {
         if (!muscleSet[i].appliesForce(s)) {
             THROW_EXCEPTION("disabled muscles are not supported");
         }
+	if (!regex_match(muscleSet[i].getName(), excludedMusclesRegex)) {
+	    activeMuscleIndices.push_back(i);
+	    cout << muscleSet[i].getName() << endl;
+	}
     }
-
-    // initialize active model coordinates
-    cout << "Active coordinate indices: ";
-    const auto& coordinateSet = _model->getCoordinateSet();
-    for (int i = 0; i < coordinateSet.getSize(); i++) {
-        bool exclude = false;
-        for (int j = 0; j < getProperty_excluded_coordiantes().size(); j++) {
-            if (coordinateSet[i].getName() == get_excluded_coordiantes(j)) {
-                exclude = true;
-                break;
-            }
-        }
-        if (!exclude) {
-            activeCoordinateIndices.push_back(i);
-            cout << i << "\t";
-        }
-    }
-    cout << endl;
 
     // setup internal variables
-    fmMax = getMaxIsometricForce(*_model);
+    fmMax = getMaxIsometricForce(*_model, activeMuscleIndices);
     feasibleMuscleForces.clear();
     smallestPolytope = numeric_limits<int>::max();
-    idStorage = new Storage(get_id_results());
+    idStorage = Storage(get_id_results());
 
     return record(s);
 }
@@ -459,7 +465,8 @@ void FeasibleMuscleForceAnalysis::setNull() {
     setName("FeasibleMuscleForceAnalysis");
     constructProperty_id_results("");
     constructProperty_use_linear_muscle_model(true);
-    constructProperty_excluded_coordiantes(Array<string>());
+    constructProperty_excluded_coordiantes("");
+    constructProperty_excluded_muscles("");
 }
 
 int FeasibleMuscleForceAnalysis::record(const State& s) {
@@ -468,13 +475,15 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     // get necessary quantities
     auto m = _model->getMuscles().getSize();
     auto n = s.getNQ();
-    auto R = calculateMomentArm(s, *_model, activeCoordinateIndices);
+    auto R = calculateMomentArm(s, *_model,
+				activeCoordinateIndices,
+				activeMuscleIndices);
     auto NR = calculateNullSpace(R);
     auto RInv = pInv(R);
 
     // fmPar = R + tau
     Vector tauTemp(n);
-    idStorage->getDataAtTime(s.getTime(), n, tauTemp);
+    idStorage.getDataAtTime(s.getTime(), n, tauTemp);
     Vector tau(activeCoordinateIndices.size());
     for (int i = 0; i < activeCoordinateIndices.size(); i++) {
         tau[i] = tauTemp[activeCoordinateIndices[i]];
@@ -487,18 +496,18 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     if (get_use_linear_muscle_model()) {
         constructLinearMuscleInequality(NR, fmPar, fmMax, Z, b);
     } else{
-	Vector cosAlpha = getCosPennationAngle(s, *_model);
-        Vector fmL = getActiveForceLengthMultiplier(s, *_model);
-        Vector fmV = getForceVelocityMultiplier(s, *_model);
-        Vector fmPE = getPasiveForceMultiplier(s, *_model);
+	auto cosAlpha = getCosPennationAngle(s, *_model, activeMuscleIndices);
+        auto fmL = getActiveForceLengthMultiplier(s, *_model, activeMuscleIndices);
+        auto fmV = getForceVelocityMultiplier(s, *_model, activeMuscleIndices);
+        auto fmPE = getPasiveForceMultiplier(s, *_model, activeMuscleIndices);
         constructNonlinearMuscleInequality(NR, fmPar, fmMax, fmL, fmV, fmPE,
 					   cosAlpha, Z, b);
     }
 
     // find the vertices of the feasible polytope
-    START_TIME();
+    // START_TIME();
     auto fm0 = vertexEnumeration(Z, b);
-    END_TIME();
+    // END_TIME();
 
     // check if vertex enumeration returned valid solution
     if (fm0.nrow() == 0 || fm0.ncol() == 0) {
