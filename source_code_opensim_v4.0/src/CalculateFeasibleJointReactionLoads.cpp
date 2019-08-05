@@ -24,7 +24,7 @@ class JointReactionAnalysis {
 public:
     struct Parameters {
         std::string subjectName;
-        OpenSim::Model* model;
+        OpenSim::Model model;
         std::string inverseKinematicsMotion;
         std::string groundReactionXMLTemplate;
         std::string groundReactionForces;
@@ -74,12 +74,12 @@ public:
         jointReaction->setJointNames(jointNames);
         jointReaction->setInFrame(expressInFrames);
         jointReaction->setOnBody(applyOnBody);
-        parameters.model->addAnalysis(jointReaction);
+        parameters.model.addAnalysis(jointReaction);
 
 	// execute analysis
         AnalyzeTool tool;
         tool.setName(parameters.subjectName);
-        tool.setModel(*parameters.model);
+        tool.setModel(parameters.model);
 	tool.setSolveForEquilibrium(true);
         tool.setInitialTime(motion.getFirstTime());
         tool.setFinalTime(motion.getLastTime());
@@ -91,7 +91,6 @@ public:
         tool.setLowpassCutoffFrequency(6);
         tool.setResultsDir(parameters.resultsDir);
         tool.run();
-	parameters.model->updAnalysisSet().clearAndDestroy();
     }
 private:
     Parameters parameters;
@@ -143,7 +142,7 @@ void run(int argc, char *argv[]) {
 		continue;
 	    }
             // perform JRA
-            Model* model = new Model(modelFile);
+            Model model(modelFile);
             JointReactionAnalysis::Parameters jraParameters
 		{
 		 to_string(currentIteration + previousIteration) + "_subject01",

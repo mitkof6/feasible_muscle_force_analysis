@@ -1,10 +1,10 @@
 /*
  * Things to improve:
  *     1. Check if coordinates and muscles are disabled (DONE)
- *     2. Use nonlinear muscle model (DONE: ignore tendon compliance model)
+ *     2. Use nonlinear muscle model (DONE: not solving dynamics)
  *     3. Use generalized forces instead of so results (DONE)
- *     4. Use largest polytope instead of the smallest
- *     5. Sample the feasible polytope to generate internal solutions 
+ *     4. Use largest polytope instead of the smallest (DONE)
+ *     5. Sample the feasible polytope to generate internal solutions (DONE)
  **/
 #include "FeasibleMuscleForceAnalysis.h"
 #include <cassert>
@@ -13,7 +13,6 @@
 #include <regex>
 #include <OpenSim/Simulation/Model/Model.h>
 #include <OpenSim/Simulation/Model/Muscle.h>
-
 extern "C" {
 #undef __cplusplus
 #include "lrslib/lrslib.h"
@@ -28,13 +27,13 @@ using namespace SimTK;
 /******************************************************************************/
 
 namespace {
-    
+
     // start measuring time
-#define START_TIME()                            \
+#define START_TIME()				\
     clock_t begin = clock();
 
     // end measuring time
-#define END_TIME()                                              \
+#define END_TIME()						\
     clock_t end = clock();                                      \
     double elapsed_secs = double(end - begin) / CLOCKS_PER_SEC; \
     cout << "Elapsed time: " << elapsed_secs << endl;
@@ -46,12 +45,12 @@ namespace {
      * \brief An exception that prints the file and line number along with the
      * message.
      */
-    class FileLineException : public std::exception {
-        std::string msg;
+    class FileLineException : public exception {
+        string msg;
     public:
-        FileLineException(const std::string &arg, const char* file, int line)
-            : std::exception() {
-            std::ostringstream o;
+        FileLineException(const string &arg, const char* file, int line)
+            : exception() {
+            ostringstream o;
             o << file << ":" << line << ": " << arg;
             msg = o.str();
         }
@@ -61,7 +60,7 @@ namespace {
 
     Matrix calculateMomentArm(const State& s, const Model& model,
                               const vector<int>& activeCoordinateIndices,
-			      const vector<int>& activeMuscleIndices) {
+                              const vector<int>& activeMuscleIndices) {
         const auto& coordinateSet = model.getCoordinateSet();
         const auto& muscleSet = model.getMuscles();
         Matrix R(activeCoordinateIndices.size(), activeMuscleIndices.size());
@@ -74,56 +73,17 @@ namespace {
         return R;
     }
 
-    Vector getMaxIsometricForce(const Model& model,
-				const vector<int>& activeMuscleIndices) {
+    Vector getMuscleRelatedValues(const Model& model,
+                                  const vector<int>& activeMuscleIndices,
+                                  function<double(const Muscle&)> operation) {
         const auto& muscleSet = model.getMuscles();
-        Vector fmMax(activeMuscleIndices.size());
+        Vector vec(activeMuscleIndices.size());
         for (int i = 0; i < activeMuscleIndices.size(); i++) {
-            fmMax[i] = muscleSet[activeMuscleIndices[i]].getMaxIsometricForce();
+            vec[i] = operation(muscleSet[activeMuscleIndices[i]]);
         }
-        return fmMax;
+        return vec;
     }
 
-    Vector getActiveForceLengthMultiplier(const State& s, const Model& model,
-					  const vector<int>& activeMuscleIndices) {
-        const auto& muscleSet = model.getMuscles();
-        Vector fmL(activeMuscleIndices.size());
-        for (int i = 0; i < activeMuscleIndices.size(); i++) {
-            fmL[i] = muscleSet[activeMuscleIndices[i]].getActiveForceLengthMultiplier(s);
-        }
-        return fmL;
-    }
-
-    Vector getForceVelocityMultiplier(const State& s, const Model& model,
-				      const vector<int>& activeMuscleIndices) {
-        const auto& muscleSet = model.getMuscles();
-        Vector fmV(activeMuscleIndices.size());
-        for (int i = 0; i < activeMuscleIndices.size(); i++) {
-            fmV[i] = muscleSet[activeMuscleIndices[i]].getForceVelocityMultiplier(s);
-        }
-        return fmV;
-    }
-
-    Vector getPasiveForceMultiplier(const State& s, const Model& model,
-				    const vector<int>& activeMuscleIndices) {
-        const auto& muscleSet = model.getMuscles();
-        Vector fmPE(activeMuscleIndices.size());
-        for (int i = 0; i < activeMuscleIndices.size(); i++) {
-            fmPE[i] = muscleSet[activeMuscleIndices[i]].getPassiveForceMultiplier(s);
-        }
-        return fmPE;
-    }
-
-    Vector getCosPennationAngle(const State& s, const Model& model,
-				const vector<int>& activeMuscleIndices) {
-        const auto& muscleSet = model.getMuscles();
-        Vector alpha(activeMuscleIndices.size());
-        for (int i = 0; i < activeMuscleIndices.size(); i++) {
-            alpha[i] = muscleSet[activeMuscleIndices[i]].getCosPennationAngle(s);
-        }
-        return alpha;
-    }
-    
     Matrix pInv(const Matrix& A) {
         Matrix AInv;
         FactorSVD svd(A);
@@ -193,7 +153,7 @@ namespace {
         b = Vector(2 * fmPar.size());
         b(0, fmPar.size()) = fmPar;
         b(fmPar.size(), fmPar.size()) = fmMax - fmPar;
-	
+
         // // validation
         // int m = fmPar.size();
         // SimTK_ASSERT_ALWAYS((b(0, m) - fmPar).norm() < 0.0001, "");
@@ -220,7 +180,7 @@ namespace {
                                             const Vector& fmL,
                                             const Vector& fmV,
                                             const Vector& fmPE,
-					    const Vector& cosAlpha,
+                                            const Vector& cosAlpha,
                                             Matrix& Z,
                                             Vector& b) {
         Z = Matrix(2 * NR.nrow(), NR.ncol());
@@ -228,10 +188,10 @@ namespace {
         Z(NR.nrow(), 0, NR.nrow(), NR.ncol()) = NR;
         b = Vector(2 * fmPar.size());
         b(0, fmPar.size()) = fmPar -
-	    fmMax.elementwiseMultiply(fmPE).elementwiseMultiply(cosAlpha);
+            fmMax.elementwiseMultiply(fmPE).elementwiseMultiply(cosAlpha);
         b(fmPar.size(), fmPar.size()) =
             fmMax.elementwiseMultiply(
-		fmL.elementwiseMultiply(fmV) + fmPE).elementwiseMultiply(cosAlpha) - fmPar;
+                fmL.elementwiseMultiply(fmV) + fmPE).elementwiseMultiply(cosAlpha) - fmPar;
     }
 
     /**
@@ -272,7 +232,7 @@ namespace {
                 } else {
                     value = b[i - 1];
                 }
-                if (std::abs(value) < 0.001) value = 0.0;
+                if (abs(value) < 0.001) value = 0.0;
                 mpq_t op;
                 mpq_init(op);
                 mpq_set_d(op, value);
@@ -370,14 +330,12 @@ namespace {
 /******************************************************************************/
 
 FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis() : Analysis() {
-    setNull();
-    // testVertexEnumeration();
-    // testNullSpace();
+    constructProperties();
 }
 
-FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const std::string& fileName)
+FeasibleMuscleForceAnalysis::FeasibleMuscleForceAnalysis(const string& fileName)
     : Analysis(fileName, false) {
-    setNull();
+    constructProperties();
     updateFromXMLDocument();
 }
 
@@ -389,9 +347,9 @@ int FeasibleMuscleForceAnalysis::begin(const State& s) {
     auto excludedCoordinatesRegex = regex(get_excluded_coordiantes());
     cout << "Active coordinates:" << endl;
     for (int i = 0; i < coordinateSet.getSize(); i++) {
-	if (!regex_match(coordinateSet[i].getName(), excludedCoordinatesRegex)) {
-		activeCoordinateIndices.push_back(i);
-		cout << coordinateSet[i].getName() << endl;
+        if (!regex_match(coordinateSet[i].getName(), excludedCoordinatesRegex)) {
+            activeCoordinateIndices.push_back(i);
+            cout << coordinateSet[i].getName() << endl;
         }
     }
 
@@ -403,16 +361,19 @@ int FeasibleMuscleForceAnalysis::begin(const State& s) {
         if (!muscleSet[i].appliesForce(s)) {
             THROW_EXCEPTION("disabled muscles are not supported");
         }
-	if (!regex_match(muscleSet[i].getName(), excludedMusclesRegex)) {
-	    activeMuscleIndices.push_back(i);
-	    cout << muscleSet[i].getName() << endl;
-	}
+        if (!regex_match(muscleSet[i].getName(), excludedMusclesRegex)) {
+            activeMuscleIndices.push_back(i);
+            cout << muscleSet[i].getName() << endl;
+        }
     }
 
     // setup internal variables
-    fmMax = getMaxIsometricForce(*_model, activeMuscleIndices);
+    fmMax = getMuscleRelatedValues(*_model, activeMuscleIndices,
+				   [](const Muscle& m)->double {
+				       return m.getMaxIsometricForce();
+				   });
     feasibleMuscleForces.clear();
-    smallestPolytope = numeric_limits<int>::max();
+    largestPolytope = 0;
     idStorage = Storage(get_id_results());
 
     return record(s);
@@ -445,14 +406,29 @@ int FeasibleMuscleForceAnalysis::printResults(const string& baseName,
     description = "\nThis file contains the feasible muscle forces.\n";
     description += "\nUnits are S.I. units (seconds, meters, Newtons, ...)\n\n";
 
-    for (int i = 0; i < smallestPolytope; i++) {
+    // create feasible force storages: create M files where M is the dimension
+    // of the large polytope and each file containing a feasible muscle force
+    // solution for each instance of the analysis.
+    for (int i = 0; i < largestPolytope; i++) {
         Storage storage;
         storage.setName(to_string(i));
         storage.setColumnLabels(labels);
         storage.setDescription(description);
         for (int j = 0; j < feasibleMuscleForces.size(); j++) {
-            storage.append(feasibleMuscleForces[j].first,
-                           feasibleMuscleForces[j].second[i]);
+            Vector temp;
+            if (i < feasibleMuscleForces[j].second.size()) {
+                // if within the bounds get the current vector i
+                temp = feasibleMuscleForces[j].second[i];
+            } else {
+                // else use the last solution that satisfies the solution at t
+                temp = feasibleMuscleForces[j].second.back();
+            }
+            // fill inactive muscles with 0
+            Vector fm(muscleSet.getSize(), 0.0);
+            for (int k = 0; k < activeMuscleIndices.size(); k++) {
+                fm[activeMuscleIndices[k]] = temp[k];
+            }
+            storage.append(feasibleMuscleForces[j].first, fm);
         }
         Storage::printResult(&storage, baseName + "_" + storage.getName(),
                              dir, dt, extension);
@@ -461,12 +437,13 @@ int FeasibleMuscleForceAnalysis::printResults(const string& baseName,
     return 0;
 }
 
-void FeasibleMuscleForceAnalysis::setNull() {
+void FeasibleMuscleForceAnalysis::constructProperties() {
     setName("FeasibleMuscleForceAnalysis");
     constructProperty_id_results("");
     constructProperty_use_linear_muscle_model(true);
     constructProperty_excluded_coordiantes("");
     constructProperty_excluded_muscles("");
+    constructProperty_convex_sampling_depth(0);
 }
 
 int FeasibleMuscleForceAnalysis::record(const State& s) {
@@ -476,8 +453,8 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     auto m = _model->getMuscles().getSize();
     auto n = s.getNQ();
     auto R = calculateMomentArm(s, *_model,
-				activeCoordinateIndices,
-				activeMuscleIndices);
+                                activeCoordinateIndices,
+                                activeMuscleIndices);
     auto NR = calculateNullSpace(R);
     auto RInv = pInv(R);
 
@@ -496,12 +473,24 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     if (get_use_linear_muscle_model()) {
         constructLinearMuscleInequality(NR, fmPar, fmMax, Z, b);
     } else{
-	auto cosAlpha = getCosPennationAngle(s, *_model, activeMuscleIndices);
-        auto fmL = getActiveForceLengthMultiplier(s, *_model, activeMuscleIndices);
-        auto fmV = getForceVelocityMultiplier(s, *_model, activeMuscleIndices);
-        auto fmPE = getPasiveForceMultiplier(s, *_model, activeMuscleIndices);
+        auto fmL = getMuscleRelatedValues(*_model, activeMuscleIndices,
+                                          [&](const Muscle& m)->double {
+                                              return m.getActiveForceLengthMultiplier(s);
+                                          });
+        auto fmV = getMuscleRelatedValues(*_model, activeMuscleIndices,
+					  [&](const Muscle& m)->double {
+					      return m.getForceVelocityMultiplier(s);
+					  });
+        auto fmPE = getMuscleRelatedValues(*_model, activeMuscleIndices,
+					   [&](const Muscle& m)->double {
+					       return m.getPassiveForceMultiplier(s);
+					   });
+        auto cosAlpha = getMuscleRelatedValues(*_model, activeMuscleIndices,
+					       [&](const Muscle& m)->double {
+						   return m.getCosPennationAngle(s);
+					       });
         constructNonlinearMuscleInequality(NR, fmPar, fmMax, fmL, fmV, fmPE,
-					   cosAlpha, Z, b);
+                                           cosAlpha, Z, b);
     }
 
     // find the vertices of the feasible polytope
@@ -521,11 +510,26 @@ int FeasibleMuscleForceAnalysis::record(const State& s) {
     for (int i = 0; i < fm0.nrow(); i++) {
         fm.push_back(fmPar + NR * ~fm0[i]);
     }
+
+    // since the feasible space is a convex set we can find additional solution
+    // in the form z = a * x_i + (1 - a) x_j
+    for (int i = 0; i < get_convex_sampling_depth(); i++) {
+        int n = fm.size();
+        for (int j = 0; j < n; j++) {
+            for (int k = 0; k < n; k++) {
+                if (i == j) continue;
+                double a = 0.5;  // midpoint interpolation
+                auto x1 = fm[j];
+                auto x2 = fm[k];
+                fm.push_back(a * x1 + (1 - a) * x2);
+            }
+        }
+    }
     feasibleMuscleForces.push_back({s.getTime(), fm});
 
-    // keep track of the smallest polytope
-    if (fm.size() < smallestPolytope) {
-        smallestPolytope = fm.size();
+    // keep track of the largest polytope
+    if (fm.size() > largestPolytope) {
+        largestPolytope = fm.size();
     }
 
     return 0;

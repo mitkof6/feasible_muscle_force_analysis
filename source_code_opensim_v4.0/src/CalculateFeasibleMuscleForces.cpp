@@ -36,6 +36,7 @@ void run() {
     feasibleForces->set_excluded_coordiantes("^pelvis_.*|^lumbar_.*|.*_l");
     // exclude left leg muscles
     feasibleForces->set_excluded_muscles(".*_l");
+    feasibleForces->set_convex_sampling_depth(0);
     model.addAnalysis(feasibleForces);
 
     AnalyzeTool analysis;
@@ -48,6 +49,7 @@ void run() {
     analysis.setCoordinatesFileName(ikFile);
     analysis.setLoadModelAndInput(true);
     analysis.setResultsDir(outputDir);
+    analysis.print(subjectDir + "subject01_setup_fmfa.xml");
     analysis.run();
 }
 

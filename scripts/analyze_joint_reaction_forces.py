@@ -12,7 +12,7 @@ import numpy as np
 # import seaborn as sns
 from tqdm import tqdm
 from utils import readMotionFile, index_containing_substring
-plt.rcParams['font.size'] = 13
+plt.rcParams['font.size'] = 11
 
 ###############################################################################
 # parameters
@@ -80,6 +80,7 @@ if collect:
 
 
 heel_strike_right = [0.65, 1.85]
+# heel_strike_right = [0.45, 1.7]
 toe_off_right = [0.15, 1.4]
 heel_strike_left = [0.0, 1.25]
 toe_off_left = [0.8, 2]
@@ -95,7 +96,7 @@ else:
     toe_off = toe_off_right
 
 # plot data min/max reactions vs OpenSim JRA
-fig, ax = plt.subplots(nrows=1, ncols=joints, figsize=(14, 5))
+fig, ax = plt.subplots(nrows=1, ncols=joints, figsize=(12, 4))
 for i in range(0, joints):
     # sns.tsplot(time=os_data[1:, 0],
     #            data=simulationData[1:, 1:, joint_index[i]] / body_weight,
@@ -119,6 +120,7 @@ for i in range(0, joints):
                  color='m', linestyle=':', label='TO')
     # figure settings
     ax[i].set_title(os_labels[joint_index[i]])
+    # ax[i].set_xlim([heel_strike[0], heel_strike[1]])
     ax[i].set_xlabel('time (s)')
     ax[i].set_ylabel('reaction / body weight')
     if i == joints - 1:
