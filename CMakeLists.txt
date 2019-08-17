@@ -2,9 +2,6 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.0)
 
 ################################################################################
 
-#include cmake modules
-include(cmake/FindGMP.cmake)
-
 # project
 project(FeasibleMuscleForceAnalysis VERSION 1.0.0)
 
@@ -80,7 +77,7 @@ set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR} CACHE INTERNAL "")
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR} CACHE INTERNAL "")
 
 # configure project global settings that are include in the source
-set(DATA_DIR "${PROJECT_SOURCE_DIR}/../data")
+set(DATA_DIR "${PROJECT_SOURCE_DIR}/data")
 configure_file("${PROJECT_SOURCE_DIR}/src/Settings.h.in"
   "${PROJECT_SOURCE_DIR}/src/Settings.h")
 set(CMAKE_EXTRA_INCLUDE_FILES)
@@ -89,13 +86,8 @@ set(CMAKE_EXTRA_INCLUDE_FILES)
 
 # configure for new version of OpenSim (v4.0)
 find_package(OpenSim REQUIRED)
-if(OpenSim_FOUND)
-  message(STATUS "OpenSim found at ${OpenSim_DIR}")
-  include_directories(${OpenSim_INCLUDE_DIRS})
-  link_directories(${OpenSim_LIB_DIR})
-else()
-  message(FATAL_ERROR "Can't find OpenSim at ${OpenSim_DIR}")
-endif()
+include_directories(${OpenSim_INCLUDE_DIRS})
+link_directories(${OpenSim_LIB_DIR})
 
 ################################################################################
 
