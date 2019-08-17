@@ -5,14 +5,10 @@
 This project contains an OpenSim v4.0 plugin for calculating the feasible muscle
 forces that satisfy the movement and physiological muscle constraints. The
 plugin also contains two executables, namely one for calculating the feasible
-muscle forces and one for calculating the feasible joint reaction loads. The
-latter operation can be performed by the python scripts (contains visualization
-utilities).
+muscle forces and one for calculating the feasible joint reaction loads.
 
 - *data* contains OpenSim .osim model related files
 - *scripts* python scripts for plotting results
-- *release* contains OpenSim v4.0 x64 pre-build plugin (not working on
-  Windows yet)
 
 ## Dependencies
 
