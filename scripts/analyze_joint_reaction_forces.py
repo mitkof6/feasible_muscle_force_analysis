@@ -1,18 +1,15 @@
-# This script processes the joint reaction loads and computes the minimum and
-# maximum bounds for a given joint of interest. The subject directory, the
-# folder containing the joint reaction results form
-# perform_joint_reaction_batch.py, the joint of interest and the mass of the
-# subject must be provided.
+# This script processes the joint reaction loads and computes the
+# minimum and maximum bounds for a given joint of interest. The
+# subject directory, the folder containing the joint reaction results
+# form perform_joint_reaction_batch.py, the joint of interest and the
+# mass of the subject must be provided.
 #
 # @author Dimitar Stanev (stanev@ece.upatras.gr)
-#
 import os
-import matplotlib.pyplot as plt
 import numpy as np
-# import seaborn as sns
 from tqdm import tqdm
-from utils import readMotionFile, index_containing_substring
-plt.rcParams['font.size'] = 11
+import matplotlib.pyplot as plt
+plt.rcParams['font.size'] = 9
 
 ###############################################################################
 # parameters
@@ -36,6 +33,96 @@ if not os.path.isfile(os_jra_file):
 if not (os.path.isdir(jra_results_dir) and
         os.path.isdir(figures_dir)):
     raise RuntimeError('required folders do not exist')
+
+
+###############################################################################
+# utilities
+
+def readMotionFile(filename):
+    """Reads OpenSim .sto files.
+
+    Parameters
+    ----------
+    filename: str
+        absolute path to the .sto file
+
+    Returns
+    -------
+    header: list of str
+        the header of the .sto
+    labels: list of str
+        the labels of the columns
+    data: list of lists
+        an array of the data
+
+    """
+
+    if not os.path.exists(filename):
+        print('file do not exists')
+
+    file_id = open(filename, 'r')
+
+    # read header
+    next_line = file_id.readline()
+    header = [next_line]
+    nc = 0
+    nr = 0
+    while 'endheader' not in next_line:
+        if 'datacolumns' in next_line:
+            nc = int(next_line[next_line.index(' ') + 1:len(next_line)])
+        elif 'datarows' in next_line:
+            nr = int(next_line[next_line.index(' ') + 1:len(next_line)])
+        elif 'nColumns' in next_line:
+            nc = int(next_line[next_line.index('=') + 1:len(next_line)])
+        elif 'nRows' in next_line:
+            nr = int(next_line[next_line.index('=') + 1:len(next_line)])
+
+        next_line = file_id.readline()
+        header.append(next_line)
+
+    # process column labels
+    next_line = file_id.readline()
+    if next_line.isspace() is True:
+        next_line = file_id.readline()
+
+    labels = next_line.split()
+
+    # get data
+    data = []
+    for i in range(1, nr + 1):
+        d = [float(x) for x in file_id.readline().split()]
+        data.append(d)
+
+    file_id.close()
+
+    return header, labels, data
+
+
+def index_containing_substring(list_str, pattern):
+    """For a given list of strings finds the index of the element that
+    contains the substring.
+
+    Parameters
+    ----------
+    list_str: list of str
+
+    pattern: str
+         pattern
+
+
+    Returns
+    -------
+    indices: list of int
+         the indices where the pattern matches
+
+    """
+    indices = []
+    for i, s in enumerate(list_str):
+        if pattern in s:
+            indices.append(i)
+
+    return indices
+
 
 ###############################################################################
 # main
@@ -68,16 +155,6 @@ if collect:
         header, labels, data = readMotionFile(jra_results_dir + f)
         simulationData[i, :, :] = np.array(data)
 
-# def _plot_range_band(central_data=None, ci=None, data=None, *args, **kwargs):
-#     upper = data.max(axis=0)
-#     lower = data.min(axis=0)
-#     #import pdb; pdb.set_trace()
-#     ci = np.asarray((lower, upper))
-#     kwargs.update({"central_data": central_data, "ci": ci, "data": data})
-#     sns.timeseries._plot_ci_band(*args, **kwargs)
-
-# sns.timeseries._plot_range_band = _plot_range_band
-
 
 heel_strike_right = [0.65, 1.85]
 # heel_strike_right = [0.45, 1.7]
@@ -98,9 +175,6 @@ else:
 # plot data min/max reactions vs OpenSim JRA
 fig, ax = plt.subplots(nrows=1, ncols=joints, figsize=(12, 4))
 for i in range(0, joints):
-    # sns.tsplot(time=os_data[1:, 0],
-    #            data=simulationData[1:, 1:, joint_index[i]] / body_weight,
-    #            ci=[0, 100], err_style='range_band', color='b', ax=ax[i])
     # plot feasible reaction loads
     min_reaction = np.min(
         simulationData[1:, 1:, joint_index[i]] / body_weight, axis=0)

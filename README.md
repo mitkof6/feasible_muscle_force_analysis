@@ -11,8 +11,9 @@ utilities).
 
 - *data* contains OpenSim .osim model related files
 - *source_code* contains the feasible muscle forces analysis plugin
-- *scripts* python scripts for calculating the feasible joint reaction loads
-- *release* contains OpenSim v4.0 x64 pre-build plugin (not working on Windows yet)
+- *scripts* python scripts for plotting results
+- *release* contains OpenSim v4.0 x64 pre-build plugin (not working on
+  Windows yet)
 
 ## Dependencies
 

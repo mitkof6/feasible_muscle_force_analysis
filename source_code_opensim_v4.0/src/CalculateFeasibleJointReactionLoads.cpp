@@ -44,8 +44,7 @@ public:
         string tempExternalLoadsXML = parameters.resultsDir +
             parameters.subjectName + "_external_loads.xml";
         // prepare external loads
-        ExternalLoads externalLoads(parameters.groundReactionXMLTemplate, false);
-        // update template
+        ExternalLoads externalLoads(parameters.groundReactionXMLTemplate, true);
         externalLoads.setExternalLoadsModelKinematicsFileName(
             parameters.inverseKinematicsMotion);
         externalLoads.setDataFileName(parameters.groundReactionForces);
@@ -53,7 +52,7 @@ public:
         externalLoads.print(tempExternalLoadsXML);
 
         // // add reserve actuators
-        // ForceSet forceSet(parameters.reserveActuators);
+        // ForceSet forceSet(parameters.reserveActuators, true);
         // for (int i = 0; i < forceSet.getSize(); i++) {
         //     parameters.model.updForceSet().append(forceSet.get(i));
         // }
@@ -99,9 +98,8 @@ private:
 void run(int argc, char *argv[]) {
     cout << "OpenSim JointReaction analysis probably has a memory leak meaning "
          << "that this batch analysis will overflow the RAM if the feasible "
-         << "muscle force set is large. To avoid this problem either use the "
-         << "python scripts or run this executable providing the previous "
-         << "iteration as a command line argument." << endl;
+         << "muscle force set is large. To avoid this problem run this executable "
+	 << "providing the previous iteration as a command line argument." << endl;
 
     // read command line arguments
     int previousIteration;
